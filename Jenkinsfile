@@ -151,19 +151,31 @@ pipeline {
                 unstash 'xml-out'
                 junit 'junit.xml'
 
-                cobertura autoUpdateHealth: false,
-                  autoUpdateStability: false,
-                  coberturaReportFile: 'coverage.xml',
-                  conditionalCoverageTargets: '70, 0, 0',
-                  failUnhealthy: false,
-                  failUnstable: false,
-                  maxNumberOfBuilds: 0,
-                  lineCoverageTargets: '70, 0, 0',
-                  methodCoverageTargets: '70, 0, 0',
-                  onlyStable: false,
-                  sourceEncoding: 'ASCII',
-                  zoomCoverageChart: false
-                  codacy action: 'reportCoverage', filePath: "coverage.xml"
+                recordCoverage(
+                  tools: [
+                    [parser: 'COBERTURA', pattern: 'coverage.xml']
+                  ],
+                  sourceCodeEncoding: 'ASCII',
+                  enabledForFailure: true,
+                  qualityGates: [
+                    [
+                      metric: 'LINE',
+                      threshold: 70.0,
+                      criticality: 'UNSTABLE'
+                    ],
+                    [
+                      metric: 'METHOD',
+                      threshold: 70.0,
+                      criticality: 'UNSTABLE'
+                    ],
+                    [
+                      metric: 'BRANCH',
+                      threshold: 0.0,
+                      criticality: 'UNSTABLE'
+                    ]
+                  ]
+                )
+               codacy action: 'reportCoverage', filePath: "coverage.xml"
               }
             }
           }
