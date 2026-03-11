@@ -14,6 +14,37 @@ import (
 	"github.com/cyberark/conjur-cli-go/pkg/prompts"
 )
 
+type CloudURL struct {
+	Tenant string
+	Suffix string
+}
+
+// tenantDiscoveryResp models the /api/public/tenant-discovery response.
+type tenantDiscoveryResp struct {
+	TenantID string                   `json:"tenant_id"`
+	Services []tenantDiscoveryService `json:"services"`
+}
+
+type tenantDiscoveryService struct {
+	ServiceName string                           `json:"service_name"`
+	Region      string                           `json:"region"`
+	Endpoints   []tenantDiscoveryServiceEndpoint `json:"endpoints"`
+}
+
+type tenantDiscoveryServiceEndpoint struct {
+	IsActive bool   `json:"is_active"`
+	Type     string `json:"type"`
+	UI       string `json:"ui"`
+	API      string `json:"api"`
+}
+
+const (
+	// tenantDiscoveryIdentityService is the service name for identity administration
+	// in the /api/public/tenant-discovery response.
+	tenantDiscoveryIdentityService = "identity_administration"
+	tenantDiscoveryMainEndpoint    = "main"
+)
+
 func CloudLogin(conjurClient ConjurClient, username string, password string) (ConjurClient, error) {
 	if strings.HasPrefix(username, "host/") {
 		return cloudHostLogin(conjurClient, username, password)
@@ -87,38 +118,80 @@ func tokenFromIdentity(client ConjurClient, url string, tenantID string, usernam
 	return ia.GetToken(username, password)
 }
 
-type endpointResp struct {
-	Fqdn         string `json:"fqdn"`
-	TenantMgmtId string `json:"tenant_mgmt_id"`
-}
-
+// identityURL returns the identity (idaptive) UI URL and tenant ID for the
+// configured appliance by querying the platform-discovery service.
 func identityURL(client ConjurClient) (string, string, error) {
-	tenantURL := client.GetConfig().ApplianceURL
-	ccURL, err := ParseCloudURL(tenantURL)
+	ccURL, err := ParseCloudURL(client.GetConfig().ApplianceURL)
 	if err != nil {
 		return "", "", err
 	}
-	endpoint := fmt.Sprintf("https://%s%s/shell/api/endpoint/%s", ccURL.Tenant, ccURL.Suffix, ccURL.Tenant)
-	resp, err := client.GetHttpClient().Get(endpoint)
+
+	result, err := fetchTenantDiscovery(client.GetHttpClient(), tenantDiscoveryEndpointURL(ccURL))
 	if err != nil {
 		return "", "", err
+	}
+
+	if result.TenantID == "" {
+		return "", "", fmt.Errorf("tenant_id not found in tenant discovery response")
+	}
+
+	identityAdminURL, err := findIdentityAdminURL(result)
+	if err != nil {
+		return "", "", err
+	}
+
+	return identityAdminURL, result.TenantID, nil
+}
+
+// tenantDiscoveryEndpointURL builds the platform-discovery request URL for the
+// given CloudURL. The tenant is passed as a query parameter so that the shared
+// platform-discovery host can serve all tenants on the same domain suffix.
+func tenantDiscoveryEndpointURL(ccURL *CloudURL) string {
+	return fmt.Sprintf(
+		"https://platform-discovery%s/api/public/tenant-discovery?bySubdomain=%s&allEndpoints=true",
+		ccURL.Suffix, ccURL.Tenant,
+	)
+}
+
+func fetchTenantDiscovery(httpClient *http.Client, url string) (*tenantDiscoveryResp, error) {
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("tenant discovery request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	bytes, err := io.ReadAll(resp.Body)
+
+	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", "", err
+		return nil, fmt.Errorf("failed to read tenant discovery response body: %w", err)
 	}
-	var result endpointResp
-	err = json.Unmarshal(bytes, &result)
-	if err != nil {
-		return "", "", err
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("tenant discovery request returned HTTP %d", resp.StatusCode)
 	}
-	return fmt.Sprintf("https://%s", result.Fqdn), ccURL.Tenant, nil
+
+	var result tenantDiscoveryResp
+	if err = json.Unmarshal(respBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse tenant discovery response: %w", err)
+	}
+
+	return &result, nil
 }
 
-type CloudURL struct {
-	Tenant string
-	Suffix string
+// findIdentityAdminURL returns the UI URL of the identity_administration service's
+// main endpoint from the tenant discovery response.
+func findIdentityAdminURL(result *tenantDiscoveryResp) (string, error) {
+	for _, svc := range result.Services {
+		if svc.ServiceName != tenantDiscoveryIdentityService {
+			continue
+		}
+		for _, ep := range svc.Endpoints {
+			if ep.Type == tenantDiscoveryMainEndpoint && ep.UI != "" {
+				return ep.UI, nil
+			}
+		}
+		return "", fmt.Errorf("main endpoint not found for identity_administration service in tenant discovery response")
+	}
+	return "", fmt.Errorf("identity_administration service not found in tenant discovery response")
 }
 
 func ParseCloudURL(url string) (*CloudURL, error) {

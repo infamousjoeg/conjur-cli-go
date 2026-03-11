@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [9.1.3] - 2026-03-10
+
+### Fixed
+- Fix tenant discovery 404s by calling the platform-discovery endpoint for identity URL (CNJR-13092)
+
 ## [9.1.2] - 2026-01-21
 
 ### Fixed
