@@ -75,7 +75,8 @@ func oidcLogin(conjurClient ConjurClient, oidcPromptHandler func(string) error) 
 	if err != nil {
 		return nil, errors.New(
 			"You have successfully authenticated with OIDC, but your access was denied by Secrets Manager. " +
-				"Please verify your authenticator configuration in Secrets Manager or contact your administrator " +
+				"Please verify your authenticator configuration in Secrets Manager. This can also occur if " +
+				"your system clock is out of sync. If the issue persists, contact your administrator " +
 				"for assistance.",
 		)
 	}

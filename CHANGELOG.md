@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Fix tenant discovery 404s by calling the platform-discovery endpoint for identity URL (CNJR-13092)
 
+### Changed
+- Improved error message for OIDC token validation failures. CNJR-12880
+
 ## [9.1.2] - 2026-01-21
 
 ### Fixed
