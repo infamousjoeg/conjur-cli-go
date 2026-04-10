@@ -130,7 +130,7 @@ func TestListIntegration(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, stdErr)
 
-		assert.Contains(t, stdOut, `"count": 8`)
+		assert.Contains(t, stdOut, `"count": 9`)
 		assert.NotContains(t, stdOut, cli.account+":policy:")
 		assert.NotContains(t, stdOut, cli.account+":user:")
 		assert.NotContains(t, stdOut, cli.account+":host:")

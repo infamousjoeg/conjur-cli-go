@@ -27,6 +27,8 @@ function main() {
 
   local conjur_account=dev
   local admin_initial_password='SuperSecret!!!!123'
+  export CONJUR_ACCOUNT="$conjur_account"
+  export CONJUR_ADMIN_PASSWORD="$admin_initial_password"
 
   # Add the domain to the Identity service account we fetch from Atlantis
   if [[ -n "${INFRAPOOL_IDENTITY_USERNAME}" ]]; then

@@ -19,10 +19,6 @@ services:
       LDAP_BINDPW: ldapsecret
       LDAP_FILTER: (uid=%s)
     volumes:
-      # The files add the endpoint /dev to Conjur. This endpoint allows us to carry out typical development tasks such as fetching
-      # any role's API key via an unauthenticated HTTP request to Conjur.
-      - ./conjur-hacks/dev_initializer.rb:/opt/conjur-server/config/initializers/dev_initializer.rb
-      - ./conjur-hacks/dev_controller.rb:/opt/conjur-server/app/controllers/dev_controller.rb
       - ./keycloak:/oauth/keycloak/scripts
     depends_on:
       - pg
@@ -55,6 +51,8 @@ services:
       - CONJUR_APPLIANCE_URL=$INFRAPOOL_CONJUR_APPLIANCE_URL
       - IDENTITY_USERNAME_CLOUD=$INFRAPOOL_IDENTITY_USERNAME_CLOUD
       - IDENTITY_PASSWORD_CLOUD=$IDENTITY_PASSWORD_CLOUD
+      - CONJUR_ACCOUNT=$CONJUR_ACCOUNT
+      - CONJUR_ADMIN_PASSWORD=$CONJUR_ADMIN_PASSWORD
     command: bash -c "cd ${PWD}/..; make install; sleep infinity"
     working_dir: ${PWD}/..
     restart: on-failure
