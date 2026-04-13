@@ -73,14 +73,30 @@ func executeCommandForTestWithPromptResponses(
 	mockHelpText(cmd)
 
 	cleanup, in, out, done := mockStdio(t)
+	stop := make(chan struct{})
+	writeErr := make(chan error, len(promptResponses))
 
 	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
 		for _, pr := range promptResponses {
-			for range time.Tick(100 * time.Millisecond) {
+			for {
+				select {
+				case <-ticker.C:
+					if pr.prompt != "" && !strings.Contains(out.String(), pr.prompt) {
+						continue
+					}
+				case <-stop:
+					return
+				}
+
 				if strings.Contains(out.String(), pr.prompt) {
 					if len(pr.response) > 0 {
 						_, err := in.Write([]byte(pr.response + "\n"))
-						assert.NoError(t, err)
+						if err != nil {
+							writeErr <- err
+						}
 					}
 					break
 				}
@@ -89,9 +105,17 @@ func executeCommandForTestWithPromptResponses(
 	}()
 
 	err := cmd.Execute()
+	close(stop)
 
 	cleanup()
 	<-done
+
+	select {
+	case promptErr := <-writeErr:
+		assert.NoError(t, promptErr)
+	default:
+	}
+
 	return out.String(), err
 }
 

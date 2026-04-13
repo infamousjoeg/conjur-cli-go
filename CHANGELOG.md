@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Improved error message for OIDC token validation failures. CNJR-12880
 
+### Security
+- Remove grpc and containerd dependencies to address CVE-2026-33186, CVE-2024-21626, CVE-2024-25621. CNJR-13643
+
 ## [9.1.2] - 2026-01-21
 
 ### Fixed

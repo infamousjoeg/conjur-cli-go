@@ -116,7 +116,7 @@ func TestJWTIntegration(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			cli := newConjurTestCLI(t)
 
-			setupJwtAuthenticator(cli.account, tc.jwtConnection)
+			setupJwtAuthenticator(cli, t, tc.jwtConnection)
 
 			testJwtLogin(t, cli, tc.jwtConfig)
 			testJwtAuthenticatedCli(t, cli, tc.jwtConfig)
@@ -125,10 +125,12 @@ func TestJWTIntegration(t *testing.T) {
 	}
 }
 
-func setupJwtAuthenticator(account string, jwtConnection jwtConnection) {
-	loadPolicyFile(account, "../../ci/jwt/policy.yml")
+func setupJwtAuthenticator(cli *testConjurCLI, t *testing.T, jwtConnection jwtConnection) {
+	cli.InitAndLoginAsAdminWithPolicy(t, emptyPolicy)
+	cli.LoadPolicyFile(t, "../../ci/jwt/policy.yml")
 
-	createSecret(account, "conjur/authn-jwt/keycloak/jwks-uri", jwtConnection.jwksURI)
-	createSecret(account, "conjur/authn-jwt/keycloak/token-app-property", jwtConnection.tokenAppProperty)
-	createSecret(account, "conjur/authn-jwt/keycloak/issuer", jwtConnection.issuer)
+	cli.CreateSecret(t, "conjur/authn-jwt/keycloak/jwks-uri", jwtConnection.jwksURI)
+	cli.CreateSecret(t, "conjur/authn-jwt/keycloak/token-app-property", jwtConnection.tokenAppProperty)
+	cli.CreateSecret(t, "conjur/authn-jwt/keycloak/issuer", jwtConnection.issuer)
+	cli.Logout(t)
 }

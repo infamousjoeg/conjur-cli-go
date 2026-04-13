@@ -232,7 +232,7 @@ func TestOIDCIntegration(t *testing.T) {
 			err := hasValidVariables(tc.envVars)
 			assert.Nil(t, err)
 
-			setupAuthenticator(cli.account, tc.oidcConnection, tc.authnOidcConfig)
+			setupAuthenticator(cli, t, tc.oidcConnection, tc.authnOidcConfig)
 
 			testLogin(t, cli, tc.oidcCredentials, tc.authnOidcConfig)
 			testAuthenticatedCli(t, cli, tc.authnOidcConfig)
@@ -257,15 +257,17 @@ func hasValidVariables(keys []string) error {
 	return nil
 }
 
-func setupAuthenticator(account string, oc oidcConnection, aoc authnOidcConfig) {
-	loadPolicyFile(account, fmt.Sprintf("../../ci/%s/policy.yml", aoc.serviceID))
-	loadPolicyFile(account, fmt.Sprintf("../../ci/%s/users.yml", aoc.serviceID))
+func setupAuthenticator(cli *testConjurCLI, t *testing.T, oc oidcConnection, aoc authnOidcConfig) {
+	cli.InitAndLoginAsAdminWithPolicy(t, emptyPolicy)
+	cli.LoadPolicyFile(t, fmt.Sprintf("../../ci/%s/policy.yml", aoc.serviceID))
+	cli.LoadPolicyFile(t, fmt.Sprintf("../../ci/%s/users.yml", aoc.serviceID))
 
-	createSecret(account, fmt.Sprintf("conjur/authn-oidc/%s/provider-uri", aoc.serviceID), oc.providerURI)
-	createSecret(account, fmt.Sprintf("conjur/authn-oidc/%s/client-id", aoc.serviceID), oc.clientID)
-	createSecret(account, fmt.Sprintf("conjur/authn-oidc/%s/client-secret", aoc.serviceID), oc.clientSecret)
-	createSecret(account, fmt.Sprintf("conjur/authn-oidc/%s/claim-mapping", aoc.serviceID), aoc.claimMapping)
-	createSecret(account, fmt.Sprintf("conjur/authn-oidc/%s/redirect_uri", aoc.serviceID), "http://127.0.0.1:8888/callback")
+	cli.CreateSecret(t, fmt.Sprintf("conjur/authn-oidc/%s/provider-uri", aoc.serviceID), oc.providerURI)
+	cli.CreateSecret(t, fmt.Sprintf("conjur/authn-oidc/%s/client-id", aoc.serviceID), oc.clientID)
+	cli.CreateSecret(t, fmt.Sprintf("conjur/authn-oidc/%s/client-secret", aoc.serviceID), oc.clientSecret)
+	cli.CreateSecret(t, fmt.Sprintf("conjur/authn-oidc/%s/claim-mapping", aoc.serviceID), aoc.claimMapping)
+	cli.CreateSecret(t, fmt.Sprintf("conjur/authn-oidc/%s/redirect_uri", aoc.serviceID), "http://127.0.0.1:8888/callback")
+	cli.Logout(t)
 }
 
 func assertAuthTokenCached(t *testing.T, tmpDir string) {

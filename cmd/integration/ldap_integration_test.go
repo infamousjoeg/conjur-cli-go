@@ -60,13 +60,15 @@ func testLDAPLogout(t *testing.T, tmpDir string, cli *testConjurCLI) {
 func TestLDAPIntegration(t *testing.T) {
 	cli := newConjurTestCLI(t)
 
-	setupLDAPAuthenticator(cli.account)
+	setupLDAPAuthenticator(cli, t)
 
 	testLDAPLogin(t, cli)
 	testLDAPAuthenticatedCli(t, cli)
 	testLDAPLogout(t, cli.homeDir, cli)
 }
 
-func setupLDAPAuthenticator(account string) {
-	loadPolicyFile(account, "../../ci/ldap/policy.yml")
+func setupLDAPAuthenticator(cli *testConjurCLI, t *testing.T) {
+	cli.InitAndLoginAsAdminWithPolicy(t, emptyPolicy)
+	cli.LoadPolicyFile(t, "../../ci/ldap/policy.yml")
+	cli.Logout(t)
 }

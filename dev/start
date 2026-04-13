@@ -62,7 +62,14 @@ function admin_initial_password() {
 }
 
 function admin_api_key() {
-  curl -s 'http://conjur/dev?action=retrieve_api_key&role_id=dev:user:admin'
+  if [ -n "${CONJUR_ADMIN_PASSWORD:-}" ]; then
+    cat <<EOF | tr -d '\r\n'
+$CONJUR_ADMIN_PASSWORD
+EOF
+    return
+  fi
+
+  cat ${PWD}/${path_to_admin_initial_password}
 }
 
 export -f admin_api_key
@@ -122,28 +129,33 @@ EOL
   if [ "$ENABLE_OIDC_OKTA" = true ]; then
     echo "Setting up Conjur for OIDC (Okta)"
     docker compose exec cli-dev bash -c 'conjur logout
-conjur init --force-netrc --force -u http://conjur -i -a dev -t oidc --service-id okta
+conjur init oss --force-netrc --force -u http://conjur -i -a dev -t oidc --service-id okta
 conjur login -i $OKTA_USERNAME -p $OKTA_PASSWORD'
   elif [ "$ENABLE_OIDC_KEYCLOAK" = true ]; then
     echo "Setting up Conjur for OIDC (Keycloak)"
     docker compose exec cli-dev bash -c 'conjur logout
-conjur init --force-netrc --force -u http://conjur -i -a dev -t oidc --service-id keycloak
+conjur init oss --force-netrc --force -u http://conjur -i -a dev -t oidc --service-id keycloak
 conjur login -i alice -p alice'
   elif [ "$ENABLE_OIDC_IDENTITY" = true ]; then
     echo "Setting up Conjur for OIDC (Identity)"
     docker compose exec cli-dev bash -c 'conjur logout
-conjur init --force-netrc --force -u http://conjur -i -a dev -t oidc --service-id identity
+conjur init oss --force-netrc --force -u http://conjur -i -a dev -t oidc --service-id identity
 conjur login -i $IDENTITY_USERNAME'
   elif [ "$ENABLE_JWT_KEYCLOAK" = true ]; then
     echo "Setting up Conjur for JWT (Keycloak)"
     fetch_jwt
     docker compose exec cli-dev bash -c 'conjur logout
-conjur init --force-netrc --force -u http://conjur -i -a dev -t jwt --service-id keycloak --jwt-file /jwt'
+conjur init oss --force-netrc --force -u http://conjur -i -a dev -t jwt --service-id keycloak --jwt-file /jwt'
   elif [ "$ENABLE_LDAP" = true ]; then
     echo "Setting up Conjur for LDAP"
     docker compose exec cli-dev bash -c 'conjur logout
-conjur init --force-netrc --force -u http://conjur -i -a dev -t ldap --service-id test-service
+conjur init oss --force-netrc --force -u http://conjur -i -a dev -t ldap --service-id test-service
 conjur login -i alice -p aliceLdapPwd'
+  else
+    echo "Setting up Conjur for admin login"
+  docker compose exec cli-dev bash -c "conjur logout
+conjur init oss --force-netrc --force -u http://conjur -i -a dev -t authn
+conjur login -i admin -p \"${admin_initial_password}\""
   fi
   echo
   docker compose exec cli-dev bash
