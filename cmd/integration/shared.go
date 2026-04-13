@@ -5,23 +5,24 @@ package main
 
 import (
 	"bytes"
-	"github.com/cyberark/conjur-api-go/conjurapi"
+	"fmt"
 	"io"
-	"log"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/cyberark/conjur-api-go/conjurapi"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	pathToBinary = "conjur"
+	pathToBinary              = "conjur"
+	integrationDefaultAccount = "dev"
+	adminPasswordEnvVar       = "CONJUR_ADMIN_PASSWORD"
 
 	insecureModeWarning = "Warning: Running the command with '--insecure' makes your system vulnerable to security attacks\n" +
 		"If you prefer to communicate with the server securely you must reinitialize the client in secure mode.\n"
@@ -53,18 +54,12 @@ const (
 
 func newConjurTestCLI(t *testing.T) (cli *testConjurCLI) {
 	homeDir := t.TempDir()
-	// Lean on the uniqueness of temp directories
-	account := strings.Replace(homeDir, "/", "", -1)
+	account := integrationAccount()
 
 	cli = &testConjurCLI{
 		homeDir: homeDir,
 		account: account,
 	}
-
-	// Create a Conjur account
-	cleanUpConjurAccount := prepareConjurAccount(account)
-	// Clean up the Conjur account after the tests complete
-	t.Cleanup(cleanUpConjurAccount)
 
 	return
 }
@@ -75,14 +70,23 @@ type testConjurCLI struct {
 }
 
 func (cli *testConjurCLI) InitAndLoginAsAdmin(t *testing.T) {
+	cli.InitAndLoginAsAdminWithPolicy(t, testPolicy)
+}
+
+func (cli *testConjurCLI) InitAndLoginAsAdminWithPolicy(t *testing.T, policyText string) {
 	// Initialize the CLI
 	cli.Init(t)
 
 	// Login as admin
 	cli.LoginAsAdmin(t)
 
-	// Load test policy
-	cli.LoadPolicy(t, testPolicy)
+	// Load requested root policy
+	cli.ReplacePolicy(t, policyText)
+}
+
+func (cli *testConjurCLI) Logout(t *testing.T) {
+	stdOut, stdErr, err := cli.Run("logout")
+	assertLogoutCmd(t, err, stdOut, stdErr)
 }
 
 func (cli *testConjurCLI) Init(t *testing.T) {
@@ -101,12 +105,19 @@ func (cli *testConjurCLI) InitWithTrailingSlash(t *testing.T) {
 }
 
 func (cli *testConjurCLI) LoginAsAdmin(t *testing.T) {
-	stdOut, stdErr, err := cli.Run("login", "-i", "admin", "-p", makeDevRequest("retrieve_api_key", map[string]string{"role_id": cli.account + ":user:admin"}))
+	stdOut, stdErr, err := cli.Run("login", "-i", "admin", "-p", adminPassword(t))
 	assertLoginCmd(t, err, stdOut, stdErr)
 }
 
 func (cli *testConjurCLI) LoginAsHost(t *testing.T, host string) {
-	stdOut, stdErr, err := cli.Run("login", "-i", "host/"+host, "-p", makeDevRequest("retrieve_api_key", map[string]string{"role_id": cli.account + ":host:" + host}))
+	hostAPIKey := cli.rotateRoleAPIKey(t, "host", fmt.Sprintf("%s:host:%s", cli.account, host))
+	stdOut, stdErr, err := cli.Run("login", "-i", "host/"+host, "-p", hostAPIKey)
+	assertLoginCmd(t, err, stdOut, stdErr)
+}
+
+func (cli *testConjurCLI) LoginAsUser(t *testing.T, user string) {
+	userAPIKey := cli.rotateRoleAPIKey(t, "user", fmt.Sprintf("%s:user:%s", cli.account, user))
+	stdOut, stdErr, err := cli.Run("login", "-i", user, "-p", userAPIKey)
 	assertLoginCmd(t, err, stdOut, stdErr)
 }
 
@@ -116,6 +127,25 @@ func (cli *testConjurCLI) LoadPolicy(t *testing.T, policyText string) {
 		"policy", "load", "-b", "root", "-f", "-",
 	)
 	assertPolicyLoadCmd(t, err, stdOut, stdErr)
+}
+
+func (cli *testConjurCLI) ReplacePolicy(t *testing.T, policyText string) {
+	stdOut, stdErr, err := cli.RunWithStdin(
+		bytes.NewReader([]byte(policyText)),
+		"policy", "replace", "-b", "root", "-f", "-",
+	)
+	assertPolicyLoadCmd(t, err, stdOut, stdErr)
+}
+
+func (cli *testConjurCLI) LoadPolicyFile(t *testing.T, policyFile string) {
+	policy, err := os.ReadFile(policyFile)
+	require.NoError(t, err)
+	cli.LoadPolicy(t, string(policy))
+}
+
+func (cli *testConjurCLI) CreateSecret(t *testing.T, variable string, value string) {
+	stdOut, stdErr, err := cli.Run("variable", "set", "-i", variable, "-v", value)
+	assertSetVariableCmd(t, err, stdOut, stdErr)
 }
 
 func (cli *testConjurCLI) DryRunPolicy(t *testing.T, mode string, branch string, policyText string) (stdOut string, stdErr string, err error) {
@@ -143,51 +173,30 @@ func (cli *testConjurCLI) Run(args ...string) (stdOut string, stdErr string, err
 	return cli.RunWithStdin(nil, args...)
 }
 
-func makeDevRequest(action string, params map[string]string) string {
-	url, _ := url.Parse("http://conjur/dev")
-	query := url.Query()
-	for k, v := range params {
-		query.Add(k, v)
-	}
-	query.Add("action", action)
-
-	url.RawQuery = query.Encode()
-
-	resp, err := http.Get(url.String())
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	return string(body)
+func (cli *testConjurCLI) rotateRoleAPIKey(t *testing.T, roleType string, roleID string) string {
+	stdOut, stdErr, err := cli.Run(roleType, "rotate-api-key", "-i", roleID)
+	require.NoError(t, err)
+	require.Empty(t, stdErr)
+	apiKey := strings.TrimSpace(stdOut)
+	require.NotEmpty(t, apiKey)
+	return apiKey
 }
 
-func prepareConjurAccount(account string) func() {
-	makeDevRequest("destroy_account", map[string]string{"id": account})
-	makeDevRequest("create_account", map[string]string{"id": account})
-	return func() {
-		makeDevRequest("destroy_account", map[string]string{"id": account})
+func integrationAccount() string {
+	account := strings.TrimSpace(os.Getenv("CONJUR_ACCOUNT"))
+	if account == "" {
+		return integrationDefaultAccount
 	}
+	return account
 }
 
-func loadPolicy(account string, policy string) {
-	makeDevRequest("load_policy", map[string]string{"resource_id": account + ":policy:root", "policy": policy})
-}
-
-func loadPolicyFile(account, policyFile string) {
-	policy, err := os.ReadFile(policyFile)
-	if err != nil {
-		panic(err)
+func adminPassword(t *testing.T) string {
+	password := strings.TrimSpace(os.Getenv(adminPasswordEnvVar))
+	if password == "" {
+		password = strings.TrimSpace(os.Getenv("ADMIN_INITIAL_PASSWORD"))
 	}
-	loadPolicy(account, string(policy))
-}
-
-func createSecret(account string, variable string, value string) {
-	makeDevRequest("create_secret", map[string]string{"resource_id": account + ":variable:" + variable, "value": value})
+	require.NotEmpty(t, password, adminPasswordEnvVar+" must be set for integration tests")
+	return password
 }
 
 func assertInitCmd(t *testing.T, err error, stdOut string, homeDir string) {
