@@ -23,15 +23,15 @@ func newRootCommand() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use:               "conjur",
-		Short:             "Secrets Manager CLI",
-		Long:              "Command-line toolkit for managing Secrets Manager resources and performing common tasks.",
+		Short:             "Idira™ Secrets Manager CLI",
+		Long:              "Command-line toolkit for managing Idira™ Secrets Manager resources and performing common tasks.",
 		Version:           version.FullVersionName,
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: disableCompletion},
 	}
 
 	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Debug logging enabled")
 	rootCmd.PersistentFlags().Duration("timeout", time.Minute, "HTTP timeout duration, between 1s and 10m")
-	rootCmd.SetVersionTemplate("Secrets Manager CLI version {{.Version}}\n")
+	rootCmd.SetVersionTemplate("Idira™ Secrets Manager CLI version {{.Version}}\n")
 	return rootCmd
 }
 
