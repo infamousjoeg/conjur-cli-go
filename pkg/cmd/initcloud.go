@@ -84,7 +84,7 @@ func getInitCloudCmdFlagValues(cmd *cobra.Command) (initCloudCmdFlagValues, erro
 
 func validateCloudCmdFlags(cmdFlagVals initCloudCmdFlagValues, cmd *cobra.Command) error {
 	if !strings.HasPrefix(cmdFlagVals.cloudURL, "https://") {
-		return fmt.Errorf("Secrets Manager SaaS URL must use HTTPS")
+		return fmt.Errorf("Idira Secrets Manager, SaaS URL must use HTTPS")
 	}
 
 	if cmdFlagVals.selfSigned {
@@ -191,10 +191,10 @@ func newCloudInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     string(conjurapi.EnvironmentSaaS),
 		Aliases: []string{"CC", "cloud"},
-		Short:   "Initialize the Secrets Manager CLI with a Secrets Manager SaaS server",
-		Long: `Initialize the Secrets Manager CLI with a Secrets Manager SaaS server.
+		Short:   "Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, SaaS",
+		Long: `Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, SaaS.
 
-The init command creates a configuration file (.conjurrc) that contains the details for connecting to Secrets Manager SaaS. This file is located under the user's root directory.`,
+The init command creates a configuration file (.conjurrc) that contains the details for connecting to Idira Secrets Manager, SaaS. This file is located under the user's root directory.`,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runInitCloudCommand(cmd)
@@ -208,11 +208,11 @@ The init command creates a configuration file (.conjurrc) that contains the deta
 		os.Exit(1)
 	}
 
-	cmd.Flags().StringP("url", "u", "", "URL of the Secrets Manager service. Will prompt if omitted.")
-	cmd.Flags().StringP("ca-cert", "c", "", "Secrets Manager SSL certificate (will be obtained from host unless provided by this option)")
+	cmd.Flags().StringP("url", "u", "", "URL of the Idira Secrets Manager service. Will prompt if omitted.")
+	cmd.Flags().StringP("ca-cert", "c", "", "Idira Secrets Manager SSL certificate (will be obtained from host unless provided by this option)")
 	cmd.Flags().StringP("file", "f", defaultConjurRC(userHomeDir), "File to write the configuration to. You must set the CONJURRC environment variable to the same value for this file to be used for further commands.")
 	cmd.Flags().String("cert-file", filepath.Join(userHomeDir, "conjur-server.pem"), "File to write the server's certificate to")
-	cmd.Flags().StringP("proxy", "p", "", "Proxy URL to use for connecting to Secrets Manager SaaS")
+	cmd.Flags().StringP("proxy", "p", "", "Proxy URL to use for connecting to Idira Secrets Manager, SaaS")
 	cmd.Flags().BoolP("self-signed", "s", false, "Allow self-signed certificates (insecure)")
 	cmd.Flags().Bool("force-netrc", false, "Use a file-based credential storage rather than OS-native keystore (for compatibility with Summon)")
 	cmd.Flags().Bool("force", false, "Force overwrite of existing configuration file")

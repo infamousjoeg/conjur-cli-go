@@ -86,10 +86,10 @@ func newInitCommand() *cobra.Command {
 		},
 		// we have to disable automatic flags parsing before handling the env flag
 		DisableFlagParsing: true,
-		Short:              "Initialize the Secrets Manager CLI with a Secrets Manager server",
+		Short:              "Initialize the Idira Secrets Manager CLI with an Idira Secrets Manager server",
 	}
 	var env conjurapi.EnvironmentType
-	cmd.Flags().Var(&env, "env", "Type of Secrets Manager server to connect to (self-hosted, oss or saas)")
+	cmd.Flags().Var(&env, "env", "Type of Idira Secrets Manager server to connect to (self-hosted, oss or saas)")
 	return cmd
 }
 

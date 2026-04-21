@@ -1,17 +1,17 @@
 > conjur init --help | cat
 Select the environment you want to use:
-1. Secrets Manager SaaS
-2. Secrets Manager Self-Hosted
+1. Idira Secrets Manager, SaaS
+2. Idira Secrets Manager, Self-Hosted
 3. Conjur Open Source
 Enter a number between 1 and 3: 2
 
 
-  Initialize the Secrets Manager CLI with a Secrets Manager Self-Hosted or Conjur OSS server.
+  Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, Self-Hosted or Conjur OSS.
 
 
 
   The init command creates a configuration file (.conjurrc) that contains the details for connec
-ting to Secrets Manager.
+ting to Idira Secrets Manager.
   This file is located under the user's root directory.
 
 
@@ -21,9 +21,9 @@ ting to Secrets Manager.
 
   FLAGS
 
-    -a --account      Secrets Manager organization account name
+    -a --account      Idira Secrets Manager organization account name
     -t --authn-type   Authentication type to use (e.g. LDAP, OIDC, JWT)
-    -c --ca-cert      Secrets Manager SSL certificate (will be obtained from host unless provide
+    -c --ca-cert      Idira Secrets Manager SSL certificate (will be obtained from host unless provide
 d by this option)
     --cert-file       File to write the server's certificate to (/root/conjur-server.pem)
     -f --file         File to write the configuration to. You must set the CONJURRC environment

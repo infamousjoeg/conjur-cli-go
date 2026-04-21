@@ -54,7 +54,7 @@ cc_timeout: 300000000000
 		name: "prompts for URL",
 		args: []string{"init", "cloud", "--ca-cert=conjur-server.pem"},
 		promptResponses: []promptResponse{{
-			prompt:   "Enter the URL of your Secrets Manager service:",
+			prompt:   "Enter the URL of your Idira Secrets Manager service:",
 			response: "https://tenant.secretsmgr.cyberark.cloud",
 		}},
 		assert: func(t *testing.T, conjurrcInTmpDir string, stdout string) {
@@ -191,7 +191,7 @@ cc_timeout: 300000000000
 		name: "fails for http urls",
 		args: []string{"init", "cloud", "-u=http://example.com"},
 		assert: func(t *testing.T, conjurrcInTmpDir string, stdout string) {
-			assert.Contains(t, stdout, "Error: Secrets Manager SaaS URL must use HTTPS")
+			assert.Contains(t, stdout, "Error: Idira Secrets Manager, SaaS URL must use HTTPS")
 			assertFetchCertFailed(t, conjurrcInTmpDir)
 		},
 	},
@@ -199,7 +199,7 @@ cc_timeout: 300000000000
 		name: "fails urls without scheme",
 		args: []string{"init", "cloud", "-u=invalid-url"},
 		assert: func(t *testing.T, conjurrcInTmpDir string, stdout string) {
-			assert.Contains(t, stdout, "Error: Secrets Manager SaaS URL must use HTTPS")
+			assert.Contains(t, stdout, "Error: Idira Secrets Manager, SaaS URL must use HTTPS")
 			assertFetchCertFailed(t, conjurrcInTmpDir)
 		},
 	},
@@ -207,7 +207,7 @@ cc_timeout: 300000000000
 		name: "fails for invalid urls",
 		args: []string{"init", "cloud", "-u=https://invalid:url:test"},
 		assert: func(t *testing.T, conjurrcInTmpDir string, stdout string) {
-			assert.Contains(t, stdout, "Error: invalid Secrets Manager SaaS URL: expected format https://<tenant>.secretsmgr.cyberark.cloud/api")
+			assert.Contains(t, stdout, "Error: invalid Idira Secrets Manager, SaaS URL: expected format https://<tenant>.secretsmgr.cyberark.cloud/api")
 			assertFetchCertFailed(t, conjurrcInTmpDir)
 		},
 	},

@@ -1,6 +1,6 @@
 > conjur login --help
 
-  Authenticate with Secrets Manager using the provided identity and password.
+  Authenticate with Idira Secrets Manager using the provided identity and password.
 
   The command will prompt for identity and password if they are not provided via flags.
 

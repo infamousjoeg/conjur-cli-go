@@ -1,6 +1,6 @@
 > conjur variable --help
 
-  Manage Secrets Manager variables
+  Manage Idira Secrets Manager variables
 
   USAGE
 
@@ -8,8 +8,8 @@
 
   COMMANDS
 
-    get [--flags]  Get the value of one or more Secrets Manager variables
-    set [--flags]  Set the value of a Secrets Manager variable
+    get [--flags]  Get the value of one or more Idira Secrets Manager variables
+    set [--flags]  Set the value of an Idira Secrets Manager variable
 
   FLAGS
 

@@ -38,7 +38,7 @@ func LoginWithPromptFallback(
 
 	data, err := client.Login(username, password)
 	if err != nil {
-		return nil, errors.New("Unable to authenticate with Secrets Manager. Please check your credentials.")
+		return nil, errors.New("Unable to authenticate with Idira Secrets Manager. Please check your credentials.")
 	}
 
 	authenticatePair := &authn.LoginPair{Login: username, APIKey: string(data)}
@@ -74,8 +74,8 @@ func oidcLogin(conjurClient ConjurClient, oidcPromptHandler func(string) error) 
 	err = conjurClient.ForceRefreshToken()
 	if err != nil {
 		return nil, errors.New(
-			"You have successfully authenticated with OIDC, but your access was denied by Secrets Manager. " +
-				"Please verify your authenticator configuration in Secrets Manager. This can also occur if " +
+			"You have successfully authenticated with OIDC, but your access was denied by Idira Secrets Manager. " +
+				"Please verify your authenticator configuration in Idira Secrets Manager. This can also occur if " +
 				"your system clock is out of sync. If the issue persists, contact your administrator " +
 				"for assistance.",
 		)

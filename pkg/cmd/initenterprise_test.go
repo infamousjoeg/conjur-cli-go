@@ -124,7 +124,7 @@ environment: self-hosted
 			return fmt.Errorf("jwt authentication failed")
 		},
 		assert: func(t *testing.T, conjurrcInTmpDir string, stdout string) {
-			assert.Contains(t, stdout, "Unable to authenticate with Secrets Manager using the provided JWT file: jwt authentication failed")
+			assert.Contains(t, stdout, "Unable to authenticate with Idira Secrets Manager using the provided JWT file: jwt authentication failed")
 			assertFetchCertFailed(t, conjurrcInTmpDir)
 		},
 	},
@@ -133,7 +133,7 @@ environment: self-hosted
 		args: []string{"init", "enterprise", "-i"},
 		promptResponses: []promptResponse{
 			{
-				prompt:   "Enter the URL of your Secrets Manager service:",
+				prompt:   "Enter the URL of your Idira Secrets Manager service:",
 				response: "http://conjur",
 			},
 			{

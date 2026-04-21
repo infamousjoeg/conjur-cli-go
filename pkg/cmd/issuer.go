@@ -30,8 +30,8 @@ var getStringFlagFunc = getStringFlag
 
 var issuerCmd = &cobra.Command{
 	Use:   "issuer",
-	Short: "Manage dynamic secret issuers in Secrets Manager",
-	Long: `Manage dynamic secret issuers in Secrets Manager
+	Short: "Manage dynamic secret issuers in Idira Secrets Manager",
+	Long: `Manage dynamic secret issuers in Idira Secrets Manager
 
 Examples:
  - conjur issuer create --id my-issuer [options] [args] Creates an issuer whose ID is my-issuer

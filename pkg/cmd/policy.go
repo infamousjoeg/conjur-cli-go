@@ -149,7 +149,7 @@ func fetchPolicyCommandRunner(
 			cmd.Println("Policy has been fetched and saved to " + file)
 		}
 		warningMsg := "\nWarning: The effective policy's output may not fully replicate " +
-			"the policy defined in Secrets Manager. If you try to upload the output to Secrets Manager, the upload may fail."
+			"the policy defined in Idira Secrets Manager. If you try to upload the output to Idira Secrets Manager, the upload may fail."
 		cmd.Println(warningMsg)
 
 		return nil
@@ -226,7 +226,7 @@ func fetchPolicy(conjurClient policyClient, branch string, returnJSON bool, poli
 func newPolicyCommand(clientFactory policyClientFactoryFunc) *cobra.Command {
 	policyCmd := &cobra.Command{
 		Use:   "policy",
-		Short: "Manage Secrets Manager policies",
+		Short: "Manage Idira Secrets Manager policies",
 	}
 
 	policyCmd.PersistentFlags().StringP("branch", "b", "", "(Required) The parent policy branch")

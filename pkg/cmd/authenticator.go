@@ -121,7 +121,7 @@ func parseAuthenticatorID(ID string) (authenticatorType, serviceID string, err e
 func newAuthenticatorCommand(clientFactory authenticatorClientFactoryFunc) *cobra.Command {
 	authenticatorCmd := &cobra.Command{
 		Use:   "authenticator",
-		Short: "Manage Secrets Manager authenticators",
+		Short: "Manage Idira Secrets Manager authenticators",
 	}
 
 	authenticatorCmd.PersistentFlags().StringP("id", "i", "", "(Required) Provide authenticator identifier")
