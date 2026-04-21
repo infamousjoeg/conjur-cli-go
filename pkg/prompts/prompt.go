@@ -107,7 +107,7 @@ func MaybeAskForUsername(username string) (string, error) {
 	if len(username) > 0 {
 		return username, nil
 	}
-	return input("Enter your username to log into Idira™ Secrets Manager:")
+	return input("Enter your username to log into Idira Secrets Manager:")
 }
 
 // MaybeAskForPassword optionally presents a prompt to retrieve missing password from the user
@@ -146,7 +146,7 @@ func MaybeAskForURL(applianceURL string, _ *cobra.Command) (string, error) {
 		return applianceURL, nil
 	}
 	var err error
-	applianceURL, err = input("Enter the URL of your Idira™ Secrets Manager service:")
+	applianceURL, err = input("Enter the URL of your Idira Secrets Manager service:")
 	if err != nil {
 		return "", err
 	}
@@ -187,7 +187,7 @@ func AskToTrustCert(cert utils.ServerCert) error {
 	}
 
 	warning += fmt.Sprintf("\nThe server's certificate Sha256 fingerprint is %s.\n", cert.Fingerprint) +
-		"Please verify this certificate on Idira™ Secrets Manager using command:\n" +
+		"Please verify this certificate on Idira Secrets Manager using command:\n" +
 		"openssl x509 -fingerprint -sha256 -noout -in ~conjur/etc/ssl/conjur.pem\n\n" +
 		fmt.Sprintf("Certificate issuer organization: %s\n", strings.Join(cert.Issuer.Organization, ",")) +
 		fmt.Sprintf("Certificate issuer common name: %s\n", cert.Issuer.CommonName) +
@@ -209,13 +209,28 @@ func MaybeAskForEnvironment(env string) (string, error) {
 	options := make([]huh.Option[string], 0, len(conjurapi.SupportedEnvironments))
 	for _, e := range conjurapi.SupportedEnvironments {
 		environmentType := conjurapi.EnvironmentType(e)
-		options = append(options, huh.NewOption(environmentType.FullName(), environmentType.String()))
+		// Temporary fix to make tests pass with the old conjur-api-go branding.
+		// Remove this local override and restore the FullName()-based label once
+		// the rebranding changes are merged to conjur-api-go.
+		// options = append(options, huh.NewOption(environmentType.FullName(), environmentType.String()))
+		options = append(options, huh.NewOption(environmentLabel(environmentType), environmentType.String()))
 	}
 	return option(
 		options,
 		"Select the environment you want to use:",
 		"The environment you want to use.",
 	)
+}
+
+func environmentLabel(environmentType conjurapi.EnvironmentType) string {
+	switch environmentType {
+	case conjurapi.EnvironmentSaaS:
+		return "Idira Secrets Manager, SaaS"
+	case conjurapi.EnvironmentSH:
+		return "Idira Secrets Manager, Self-Hosted"
+	default:
+		return environmentType.FullName()
+	}
 }
 
 func passwordInput(title string) (string, error) {
