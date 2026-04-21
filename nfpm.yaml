@@ -4,11 +4,11 @@ version: ${VERSION}
 platform: linux
 arch: ${GOARCH}
 
-description: Secrets Manager command line interface (Golang)
+description: Idira™ Secrets Manager command line interface (Golang)
 homepage: https://conjur.org
 license: Apache 2.0
-vendor: CyberArk
-maintainer: CyberArk Maintainers <conj_maintainers@cyberark.com>
+vendor: Palo Alto Networks Idira™
+maintainer: Palo Alto Networks Idira™ Maintainers <conj_maintainers@cyberark.com>
 
 contents:
   - src: ./dist/goreleaser/conjur-cli_linux_${GOARCH}*/conjur

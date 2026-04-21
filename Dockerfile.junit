@@ -1,5 +1,5 @@
 FROM golang:1.25-alpine
-LABEL org.opencontainers.image.authors="CyberArk Software Ltd."
+LABEL org.opencontainers.image.authors="Palo Alto Networks Idira™"
 LABEL id="conjur-cli-go-junit-processor"
 
 WORKDIR /test
