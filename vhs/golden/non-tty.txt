@@ -6,13 +6,14 @@ Select the environment you want to use:
 Enter a number between 1 and 3: 2
 
 
-  Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, Self-Hosted or Conjur OSS.
+  Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, Self-Hosted or Conjur OSS
+.
 
 
 
   The init command creates a configuration file (.conjurrc) that contains the details for connec
-ting to Idira Secrets Manager.
-  This file is located under the user's root directory.
+ting to Idira Secrets
+  Manager. This file is located under the user's root directory.
 
 
   USAGE
@@ -23,8 +24,8 @@ ting to Idira Secrets Manager.
 
     -a --account      Idira Secrets Manager organization account name
     -t --authn-type   Authentication type to use (e.g. LDAP, OIDC, JWT)
-    -c --ca-cert      Idira Secrets Manager SSL certificate (will be obtained from host unless provide
-d by this option)
+    -c --ca-cert      Idira Secrets Manager SSL certificate (will be obtained from host unless p
+rovided by this option)
     --cert-file       File to write the server's certificate to (/root/conjur-server.pem)
     -f --file         File to write the configuration to. You must set the CONJURRC environment
 variable to the same value for this file to be used for further commands. (/root/.conjurrc)

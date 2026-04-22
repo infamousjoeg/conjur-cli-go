@@ -1,6 +1,6 @@
 > conjur
 
-  Command-line toolkit for managing Idira Secrets Manager resources and performing common tasks.
+  Command-line toolkit for managing Idira™ Secrets Manager resources and performing common tasks.
 
   USAGE
 
@@ -15,10 +15,12 @@
     help [command]                             Help about any command
     host [command]                             Host commands (rotate-api-key)
     hostfactory [command]                      Manage host factories
-    init [command] [--flags]                   Initialize the Idira Secrets Manager CLI with an Idira Secrets Manager server
+    init [command] [--flags]                   Initialize the Idira Secrets Manager CLI with an Idira Secrets Mana
+ger server
     issuer [command]                           Manage dynamic secret issuers in Idira Secrets Manager
     list [--flags]                             List resources visible to the currently logged-in user
-    login [--flags]                            Authenticate with Idira Secrets Manager using the provided identity and password
+    login [--flags]                            Authenticate with Idira Secrets Manager using the provided identity
+ and password
     logout                                     Log out the user and delete cached credentials.
     policy [command] [--flags]                 Manage Idira Secrets Manager policies
     pubkeys <username>                         Display the public keys associated with a user
