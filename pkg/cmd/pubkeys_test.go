@@ -59,6 +59,30 @@ ssh-rsa test-key laptop
 		},
 	},
 	{
+		name: "missing pubkeys endpoint returns friendly error for 404",
+		args: []string{"pubkeys", "alice"},
+		pubKeys: func(t *testing.T, kind string, identifier string) ([]byte, error) {
+			return nil, fmt.Errorf("404 Not Found")
+		},
+		assert: func(t *testing.T, stdout, stderr string, err error) {
+			assert.Error(t, err)
+			assert.Empty(t, stdout)
+			assert.Contains(t, stderr, "Error: public keys endpoint is not available on this server: the server may not support this feature\n")
+		},
+	},
+	{
+		name: "missing pubkeys endpoint returns friendly error for rails route mismatch",
+		args: []string{"pubkeys", "alice"},
+		pubKeys: func(t *testing.T, kind string, identifier string) ([]byte, error) {
+			return nil, fmt.Errorf("No route matches [GET] '/authn/account/user/alice/public_keys'")
+		},
+		assert: func(t *testing.T, stdout, stderr string, err error) {
+			assert.Error(t, err)
+			assert.Empty(t, stdout)
+			assert.Contains(t, stderr, "Error: public keys endpoint is not available on this server: the server may not support this feature\n")
+		},
+	},
+	{
 		name:               "client factory error",
 		args:               []string{"pubkeys", "alice"},
 		clientFactoryError: fmt.Errorf("%s", "client factory error"),
