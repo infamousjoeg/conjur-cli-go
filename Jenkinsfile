@@ -155,7 +155,7 @@ pipeline {
                   tools: [
                     [parser: 'COBERTURA', pattern: 'coverage.xml']
                   ],
-                  sourceCodeEncoding: 'ASCII',
+                  sourceCodeEncoding: 'UTF-8',
                   enabledForFailure: true,
                   qualityGates: [
                     [
@@ -175,7 +175,9 @@ pipeline {
                     ]
                   ]
                 )
-               codacy action: 'reportCoverage', filePath: "coverage.xml"
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                  codacy action: 'reportCoverage', filePath: "coverage.xml"
+                }
               }
             }
           }
