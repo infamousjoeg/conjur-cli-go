@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/huh v0.7.1-0.20250908094625-904537be8706
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.3.0.20250917201909-41ff0bf215ea
-	github.com/cyberark/conjur-api-go v0.13.2 // Run "go get github.com/cyberark/conjur-api-go@main" to update
+	github.com/cyberark/conjur-api-go v0.14.1 // Run "go get github.com/cyberark/conjur-api-go@main" to update
 	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -112,4 +112,4 @@ replace golang.org/x/net v0.21.0 => golang.org/x/net v0.33.0
 replace golang.org/x/net v0.25.0 => golang.org/x/net v0.33.0
 
 // DO NOT REMOVE: WE WANT THIS LINE TO PREVENT ACCIDENTALLY COMMITTING A VERSION OF conjur-api-go WHEN UPDATING DEPENDENCIES
-replace github.com/cyberark/conjur-api-go => github.com/cyberark/conjur-api-go v0.13.19
+replace github.com/cyberark/conjur-api-go => github.com/cyberark/conjur-api-go latest
