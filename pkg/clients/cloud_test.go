@@ -332,5 +332,5 @@ func Test_identityURL_invalidApplianceURL(t *testing.T) {
 
 	_, _, err := identityURL(fc)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid Secrets Manager SaaS URL")
+	assert.Contains(t, err.Error(), "invalid Idira Secrets Manager, SaaS URL")
 }

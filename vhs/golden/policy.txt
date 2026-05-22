@@ -1,6 +1,6 @@
 > conjur policy --help
 
-  Manage Secrets Manager policies
+  Manage Idira Secrets Manager policies
 
   USAGE
 

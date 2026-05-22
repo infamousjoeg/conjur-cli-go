@@ -1,12 +1,15 @@
 #!/bin/bash
 # vhs/run_tests.sh
 
-set -e
+set -euo pipefail
+shopt -s nullglob
 
 # Create output directory if it doesn't exist
 GOLDEN_DIR="golden"
 OUTPUT_DIR="output"
 FAILED=0
+
+mkdir -p "$OUTPUT_DIR"
 
 # Function to run a single tape file
 run_tape() {
@@ -40,7 +43,7 @@ run_tape() {
   else
     echo "❌ Differences found for $base_name after $max_attempts attempts (see ${base_name}.diff)"
     cat "$OUTPUT_DIR/${base_name}.diff"
-    FAILED=1
+    return 1
   fi
 }
 
@@ -55,20 +58,36 @@ if [ $# -gt 0 ]; then
 
     # Check if the tape file exists
     if [ -f "$tape_name" ]; then
-      run_tape "$tape_name"
+      if ! run_tape "$tape_name"; then
+        FAILED=1
+      fi
     else
       echo "❌ Tape file not found: $tape_name"
       FAILED=1
     fi
   done
 else
-  # Clean outut dir
-  rm -rf "$OUTPUT_DIR/*"
+  # Clean output dir
+  rm -rf "${OUTPUT_DIR:?}"/*
+
+  tape_files=(tapes/*.tape)
+  if [ ${#tape_files[@]} -eq 0 ]; then
+    echo "❌ No tape files found"
+    exit 1
+  fi
+
   # Run all tape files when no parameters are provided
-  for tape_file in tapes/*.tape; do
+  pids=()
+  for tape_file in "${tape_files[@]}"; do
     run_tape "$tape_file" &
+    pids+=("$!")
   done
-  wait
+
+  for pid in "${pids[@]}"; do
+    if ! wait "$pid"; then
+      FAILED=1
+    fi
+  done
 fi
 
 exit $FAILED

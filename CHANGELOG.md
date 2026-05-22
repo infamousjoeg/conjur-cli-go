@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [9.2.0] - 2026-05-22
+
+### Changed
+- Rebranding in the UI. CNJR-13739
+
 ## [9.1.4] - 2026-04-20
 
 ### Changed

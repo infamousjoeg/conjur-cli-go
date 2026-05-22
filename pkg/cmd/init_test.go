@@ -65,7 +65,7 @@ var initCmdTestCases = []struct {
 		name: "env flag redirects command to subcommand",
 		args: []string{"init", "--env", "cloud", "-u=http://host"},
 		assert: func(t *testing.T, conjurrcInTmpDir string, stdout string) {
-			assert.Contains(t, stdout, "Error: Secrets Manager SaaS URL must use HTTPS")
+			assert.Contains(t, stdout, "Error: Idira Secrets Manager, SaaS URL must use HTTPS")
 		},
 	}, {
 		name: "init saas without proxy",

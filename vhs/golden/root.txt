@@ -1,6 +1,6 @@
 > conjur
 
-  Command-line toolkit for managing Secrets Manager resources and performing common tasks.
+  Command-line toolkit for managing Idira™ Secrets Manager resources and performing common tasks.
 
   USAGE
 
@@ -9,24 +9,25 @@
   COMMANDS
 
     authenticate [--flags]                     Obtain an access token for the currently logged-in user
-    authenticator [command] [--flags]          Manage Secrets Manager authenticators
+    authenticator [command] [--flags]          Manage Idira Secrets Manager authenticators
     check <resource-id> <privilege> [--flags]  Check a role's privilege on a resource
     completion [command]                       Generate the autocompletion script for the specified shell
     help [command]                             Help about any command
     host [command]                             Host commands (rotate-api-key)
     hostfactory [command]                      Manage host factories
-    init [command] [--flags]                   Initialize the Secrets Manager CLI with a Secrets Manager server
-    issuer [command]                           Manage dynamic secret issuers in Secrets Manager
+    init [command] [--flags]                   Initialize the Idira Secrets Manager CLI with an Idira Secrets Mana
+ger server
+    issuer [command]                           Manage dynamic secret issuers in Idira Secrets Manager
     list [--flags]                             List resources visible to the currently logged-in user
-    login [--flags]                            Authenticate with Secrets Manager using the provided identity and p
-assword
+    login [--flags]                            Authenticate with Idira Secrets Manager using the provided identity
+ and password
     logout                                     Log out the user and delete cached credentials.
-    policy [command] [--flags]                 Manage Secrets Manager policies
+    policy [command] [--flags]                 Manage Idira Secrets Manager policies
     pubkeys <username>                         Display the public keys associated with a user
     resource [command]                         Manage resources
     role [command]                             Manage roles
     user [command]                             User commands (change-password, rotate-api-key)
-    variable [command]                         Manage Secrets Manager variables
+    variable [command]                         Manage Idira Secrets Manager variables
     whoami                                     Display info about the logged in user
 
   FLAGS
@@ -37,8 +38,8 @@ assword
     -v --version                               Version for conjur
 
 > conjur --version
-Secrets Manager CLI version unset-unset
+Idira™ Secrets Manager CLI version unset-unset
 
-Copyright (c) 2025 CyberArk Software Ltd. All rights reserved.
+Copyright (c) 2026 Palo Alto Networks Ltd. All rights reserved.
 <www.cyberark.com>
 >

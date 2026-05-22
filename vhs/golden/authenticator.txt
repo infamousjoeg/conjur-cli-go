@@ -1,6 +1,6 @@
 > conjur authenticator --help
 
-  Manage Secrets Manager authenticators
+  Manage Idira Secrets Manager authenticators
 
   USAGE
 

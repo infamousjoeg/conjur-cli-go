@@ -1,6 +1,6 @@
 > conjur issuer --help
 
-  Manage dynamic secret issuers in Secrets Manager
+  Manage dynamic secret issuers in Idira Secrets Manager
 
   Examples:
    - conjur issuer create --id my-issuer [options] [args] Creates an issuer whose ID is my-

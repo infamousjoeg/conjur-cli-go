@@ -97,14 +97,14 @@ func cloudIdentityLogin(client ConjurClient, username, password string) (ConjurC
 		}
 		if errorCode >= 400 {
 			return nil, fmt.Errorf(
-				"Your credentials are valid, failed to authenticate with Secrets Manager SaaS. "+
+				"Your credentials are valid, failed to authenticate with Idira Secrets Manager, SaaS. "+
 					"Please enable debug mode for more details, try again later or contact your administrator"+
 					" for assistance: %s",
 				http.StatusText(errorCode),
 			)
 		}
 		return nil, errors.New(
-			"OIDC login was successful, but your access was denied by Secrets Manager SaaS. " +
+			"OIDC login was successful, but your access was denied by Idira Secrets Manager, SaaS. " +
 				"Please enable debug mode for more details, verify your account roles, and try again " +
 				"later or contact your administrator for assistance",
 		)
@@ -200,7 +200,7 @@ func ParseCloudURL(url string) (*CloudURL, error) {
 	matches := regexp.MustCompile("^https://([^.]+)(.*)(/api)$").FindStringSubmatch(url)
 	if len(matches) == 0 {
 		return nil, fmt.Errorf(
-			"invalid Secrets Manager SaaS URL: " +
+			"invalid Idira Secrets Manager, SaaS URL: " +
 				"expected format https://<tenant>.secretsmgr.cyberark.cloud/api",
 		)
 	}
@@ -209,7 +209,7 @@ func ParseCloudURL(url string) (*CloudURL, error) {
 
 	if !strings.Contains(url, "-secretsmanager") && !strings.Contains(url, ".secretsmgr") {
 		return &res, fmt.Errorf(
-			"invalid Secrets Manager SaaS URL: "+
+			"invalid Idira Secrets Manager, SaaS URL: "+
 				"expected format https://<tenant>.secretsmgr.cyberark.cloud/api "+
 				"Did you mean? \"https://%s.secretsmgr.cyberark.cloud/api\"", res.Tenant,
 		)
@@ -219,7 +219,7 @@ func ParseCloudURL(url string) (*CloudURL, error) {
 			return &res, nil
 		}
 	}
-	return &res, fmt.Errorf("invalid Secrets Manager SaaS URL: "+
+	return &res, fmt.Errorf("invalid Idira Secrets Manager, SaaS URL: "+
 		"expected format https://<tenant>.secretsmgr.cyberark.cloud/api "+
 		"unrecognized domain suffix \"%s\"", res.Suffix)
 }

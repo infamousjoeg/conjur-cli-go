@@ -18,7 +18,7 @@ var Tag = "unset"
 var BuildYear = "2026"
 
 // DisclaimerText field
-var disclaimerText = fmt.Sprintf("Copyright (c) %v CyberArk Software Ltd. All rights reserved.\n<www.cyberark.com>", BuildYear)
+var disclaimerText = fmt.Sprintf("Copyright (c) %v Palo Alto Networks Ltd. All rights reserved.\n<www.cyberark.com>", BuildYear)
 
 // FullVersionName is the user-visible aggregation of version and tag
 // of this codebase

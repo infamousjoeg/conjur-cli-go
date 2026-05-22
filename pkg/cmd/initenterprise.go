@@ -157,7 +157,7 @@ func runInitEnterpriseCommand(cmd *cobra.Command, funcs initCmdFuncs) error {
 		}
 		err = funcs.JWTAuthenticate(client)
 		if err != nil {
-			return fmt.Errorf("Unable to authenticate with Secrets Manager using the provided JWT file: %s", err)
+			return fmt.Errorf("Unable to authenticate with Idira Secrets Manager using the provided JWT file: %s", err)
 		}
 	}
 
@@ -220,10 +220,10 @@ func newInitEnterpriseCommand(funcs initCmdFuncs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     string(conjurapi.EnvironmentSH),
 		Aliases: []string{"CE", "open-source", "oss", "OSS", "enterprise"},
-		Short:   "Initialize the Secrets Manager CLI with a Secrets Manager Self-Hosted or Conjur OSS server",
-		Long: `Initialize the Secrets Manager CLI with a Secrets Manager Self-Hosted or Conjur OSS server.
+		Short:   "Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, Self-Hosted or Conjur OSS",
+		Long: `Initialize the Idira Secrets Manager CLI with Idira Secrets Manager, Self-Hosted or Conjur OSS.
 
-The init command creates a configuration file (.conjurrc) that contains the details for connecting to Secrets Manager. This file is located under the user's root directory.`,
+The init command creates a configuration file (.conjurrc) that contains the details for connecting to Idira Secrets Manager. This file is located under the user's root directory.`,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runInitEnterpriseCommand(cmd, funcs)
@@ -237,9 +237,9 @@ The init command creates a configuration file (.conjurrc) that contains the deta
 		os.Exit(1)
 	}
 
-	cmd.Flags().StringP("account", "a", "", "Secrets Manager organization account name")
-	cmd.Flags().StringP("url", "u", "", "URL of the Secrets Manager service. Will prompt if omitted.")
-	cmd.Flags().StringP("ca-cert", "c", "", "Secrets Manager SSL certificate (will be obtained from host unless provided by this option)")
+	cmd.Flags().StringP("account", "a", "", "Idira Secrets Manager organization account name")
+	cmd.Flags().StringP("url", "u", "", "URL of the Idira Secrets Manager service. Will prompt if omitted.")
+	cmd.Flags().StringP("ca-cert", "c", "", "Idira Secrets Manager SSL certificate (will be obtained from host unless provided by this option)")
 	cmd.Flags().StringP("file", "f", defaultConjurRC(userHomeDir), "File to write the configuration to. You must set the CONJURRC environment variable to the same value for this file to be used for further commands.")
 	cmd.Flags().String("cert-file", filepath.Join(userHomeDir, "conjur-server.pem"), "File to write the server's certificate to")
 	cmd.Flags().StringP("authn-type", "t", "", "Authentication type to use (e.g. LDAP, OIDC, JWT)")

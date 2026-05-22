@@ -1,8 +1,8 @@
 > conjur init --help
 ┃ Select the environment you want to use:
 ┃ The environment you want to use.
-┃ > Secrets Manager SaaS
-┃   Secrets Manager Self-Hosted
+┃ > Idira Secrets Manager, SaaS
+┃   Idira Secrets Manager, Self-Hosted
 ┃   Conjur Open Source
 
 ↑ up • ↓ down • / filter • enter submit
