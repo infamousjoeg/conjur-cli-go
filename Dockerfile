@@ -1,10 +1,10 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS conjur-cli-go
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5 AS conjur-cli-go
 LABEL org.opencontainers.image.authors="Palo Alto Networks Idira™"
 
 ENTRYPOINT [ "/usr/local/bin/conjur" ]
 
 # Install 'tar' so we can use 'kubectl cp' to copy policy files to the container
-RUN microdnf install -y tar && microdnf clean all
+RUN microdnf update -y && microdnf install -y tar && microdnf clean all
 
 # Create a non-root user with a home directory for storing the .conjurrc file
 RUN groupadd -r cli && useradd --no-log-init -r -g cli cli && \
