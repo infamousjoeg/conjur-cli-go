@@ -291,7 +291,11 @@ func (ia *IdentityAuthenticator) startAuthentication(userName string) (*identity
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 	if len(startAuthResponse.Result.PodFQDN) > 0 {
-		ia.identityURL = startAuthResponse.Result.PodFQDN
+		podFQDN := strings.TrimRight(startAuthResponse.Result.PodFQDN, "/")
+		if !strings.HasPrefix(podFQDN, "https://") {
+			podFQDN = "https://" + strings.TrimPrefix(podFQDN, "http://")
+		}
+		ia.identityURL = podFQDN
 		return ia.startAuthentication(userName)
 	}
 	if len(ia.tenantID) == 0 {
