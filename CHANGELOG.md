@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [9.2.1] - 2026-05-26
+
+### Fixed
+- Normalize PodFQDN URL from Identity start authentication response to always include https:// scheme. CNJR-14037
+
 ## [9.2.0] - 2026-05-22
 
 ### Changed

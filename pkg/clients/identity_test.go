@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -480,6 +481,99 @@ func Test_promptSelectMech(t *testing.T) {
 			assert.Equalf(t, tt.want, promptSelectMech(tt.mech), "promptSelectMech(%v)", tt.mech)
 		})
 	}
+}
+
+func TestIdentityAuthenticator_startAuthentication_PodFQDNNormalization(t *testing.T) {
+	passOnlyJSON, err := os.ReadFile("test/identity_mock/start_auth_pass_only.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// srv is used for both the initial request and as the redirect target.
+	// The "no protocol" case uses only the host:port of srv, relying on the fix to prepend https://.
+	// We use a separate http server for the http:// case to avoid TLS issues.
+	callCount := 0
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount == 1 {
+			// Return a PodFQDN that is just the host:port (no protocol) — should get https:// prepended.
+			// The second request will fail to reach the https endpoint, but we only care about
+			// the URL normalization, so we check identityURL before the second request errors.
+			podFQDN := strings.TrimPrefix(srv.URL, "http://")
+			redirectResp := fmt.Sprintf(`{"success":true,"Result":{"PodFQDN":%q},"IsSoftError":false}`, podFQDN)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(redirectResp))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(passOnlyJSON)
+	}))
+	defer srv.Close()
+
+	t.Run("PodFQDN without protocol gets https:// prepended", func(t *testing.T) {
+		callCount = 0
+		ia := &IdentityAuthenticator{
+			identityURL: srv.URL,
+			timeout:     defaultTimeout,
+		}
+		// The second StartAuthentication call will fail (http server, not https),
+		// but the URL normalization happens before the call, so we check identityURL after.
+		_, _ = ia.startAuthentication(username)
+		hostPort := strings.TrimPrefix(srv.URL, "http://")
+		assert.Equal(t, "https://"+hostPort, ia.identityURL)
+	})
+
+	t.Run("PodFQDN with http:// gets upgraded to https://", func(t *testing.T) {
+		callCount = 0
+		srvInitial := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			if callCount == 1 {
+				// Return a PodFQDN with http:// scheme — should be upgraded to https://.
+				redirectResp := fmt.Sprintf(`{"success":true,"Result":{"PodFQDN":%q},"IsSoftError":false}`, srv.URL)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(redirectResp))
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(passOnlyJSON)
+		}))
+		defer srvInitial.Close()
+
+		ia := &IdentityAuthenticator{
+			identityURL: srvInitial.URL,
+			timeout:     defaultTimeout,
+		}
+		// The recursive call will fail (http server, not https), but normalization happens before it.
+		_, _ = ia.startAuthentication(username)
+		hostPort := strings.TrimPrefix(srv.URL, "http://")
+		assert.Equal(t, "https://"+hostPort, ia.identityURL)
+	})
+
+	t.Run("PodFQDN with https:// is not modified", func(t *testing.T) {
+		callCount = 0
+		srvInitial := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			if callCount == 1 {
+				// Return a PodFQDN that already has https:// — should pass through unchanged.
+				redirectResp := fmt.Sprintf(`{"success":true,"Result":{"PodFQDN":%q},"IsSoftError":false}`, "https://pod.example.com")
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(redirectResp))
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(passOnlyJSON)
+		}))
+		defer srvInitial.Close()
+
+		ia := &IdentityAuthenticator{
+			identityURL: srvInitial.URL,
+			timeout:     defaultTimeout,
+		}
+		// The recursive call will fail (unreachable host), but normalization happens before it.
+		_, _ = ia.startAuthentication(username)
+		assert.Equal(t, "https://pod.example.com", ia.identityURL)
+	})
 }
 
 func mockStdio(t *testing.T) (func(), io.Writer, *bytes.Buffer, chan bool) {
