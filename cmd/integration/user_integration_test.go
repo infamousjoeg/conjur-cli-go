@@ -39,12 +39,23 @@ func TestUserIntegration(t *testing.T) {
 
 	t.Run("change password", func(t *testing.T) {
 		// Log in as non-admin user to change password
-		stdOut, stdErr, err := cli.Run("login", "-i", "alice", "-p", makeDevRequest("retrieve_api_key", map[string]string{"role_id": cli.account + ":user:alice"}))
-		assertLoginCmd(t, err, stdOut, stdErr)
+		cli.LoginAsUser(t, "alice")
 
-		stdOut, stdErr, err = cli.Run("user", "change-password", "-p", "Sup3rS3cr3tc0njuR!t3stp@ssw0rd")
+		stdOut, stdErr, err := cli.Run("user", "change-password", "-p", "Sup3rS3cr3tc0njuR!t3stp@ssw0rd")
 		assert.NoError(t, err)
 		assert.Empty(t, stdErr)
 		assert.Equal(t, "Password changed\n", stdOut)
+	})
+}
+
+func TestUserIntegrationCloud(t *testing.T) {
+	cli := newConjurTestCLI(t)
+	cli.InitCloud(t)
+
+	t.Run("user command", func(t *testing.T) {
+		stdOut, stdErr, err := cli.Run("user")
+		assert.Error(t, err)
+		assert.Empty(t, stdOut)
+		assert.Contains(t, stdErr, "unknown command \"user\" for \"conjur\"\n")
 	})
 }

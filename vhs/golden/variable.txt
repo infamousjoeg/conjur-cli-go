@@ -1,0 +1,26 @@
+> conjur variable --help
+
+  Manage Idira Secrets Manager variables
+
+  USAGE
+
+    conjur variable [command] [--flags]
+
+  COMMANDS
+
+    get [--flags]  Get the value of one or more Idira Secrets Manager variables
+    set [--flags]  Set the value of an Idira Secrets Manager variable
+
+  FLAGS
+
+    -d --debug     Debug logging enabled
+    -h --help      Help for variable
+    --timeout      Http timeout duration, between 1s and 10m (1m0s)
+
+>
+
+
+
+
+
+

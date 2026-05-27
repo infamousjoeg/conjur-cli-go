@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cyberark/conjur-cli-go/pkg/clients"
 
 	"github.com/spf13/cobra"
@@ -15,6 +18,19 @@ func pubKeysClientFactory(cmd *cobra.Command) (pubKeysClient, error) {
 }
 
 type pubKeysClientFactoryFunc func(*cobra.Command) (pubKeysClient, error)
+
+func isPublicKeysEndpointMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "404 Not Found") || strings.Contains(errMsg, "No route matches")
+}
+
+func publicKeysEndpointUnavailableError() error {
+	return fmt.Errorf("public keys endpoint is not available on this server: the server may not support this feature")
+}
 
 func newPubKeysCommand(clientFactory pubKeysClientFactoryFunc) *cobra.Command {
 	cmd := &cobra.Command{
@@ -40,6 +56,9 @@ Examples:
 
 			pubKeysData, err := client.PublicKeys("user", username)
 			if err != nil {
+				if isPublicKeysEndpointMissing(err) {
+					return publicKeysEndpointUnavailableError()
+				}
 				return err
 			}
 
@@ -53,6 +72,9 @@ Examples:
 }
 
 func init() {
-	pubKeysCmd := newPubKeysCommand(pubKeysClientFactory)
-	rootCmd.AddCommand(pubKeysCmd)
+	config := clients.LoadConfigOrDefault()
+	if config.IsSelfHosted() || config.IsConjurOSS() {
+		pubKeysCmd := newPubKeysCommand(pubKeysClientFactory)
+		rootCmd.AddCommand(pubKeysCmd)
+	}
 }

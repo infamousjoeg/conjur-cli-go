@@ -18,7 +18,7 @@ func checkClientFactory(cmd *cobra.Command) (checkClient, error) {
 
 func newCheckCmd(clientFactory checkClientFactoryFunc) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "check",
+		Use:   "check <resource-id> <privilege>",
 		Short: "Check a role's privilege on a resource",
 		Long: `Check a role's privilege on a resource
 
@@ -78,7 +78,9 @@ Examples:
 }
 
 func init() {
-	checkCmd := newCheckCmd(checkClientFactory)
-
-	rootCmd.AddCommand(checkCmd)
+	config := clients.LoadConfigOrDefault()
+	if config.IsSelfHosted() || config.IsConjurOSS() {
+		checkCmd := newCheckCmd(checkClientFactory)
+		rootCmd.AddCommand(checkCmd)
+	}
 }

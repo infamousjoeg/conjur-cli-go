@@ -9,7 +9,10 @@ import (
 	"strings"
 )
 
-const redactedString = "[REDACTED]"
+const (
+	redactedString  = "[REDACTED]"
+	setCookieHeader = "Set-Cookie"
+)
 
 type dumpTransport struct {
 	roundTripper http.RoundTripper
@@ -31,6 +34,24 @@ func redactAuthz(req *http.Request) (restore func()) {
 	}
 
 	return
+}
+
+// redactCookies purges all headers from a given response,
+// and returns a function to restore them.
+func redactCookies(res *http.Response) func() {
+	if len(res.Header.Values(setCookieHeader)) == 0 {
+		return func() {}
+	}
+
+	restore := func() {
+		origCookies := res.Header.Values(setCookieHeader)
+		for _, c := range origCookies {
+			res.Header.Add(setCookieHeader, c)
+		}
+	}
+	res.Header.Set(setCookieHeader, redactedString)
+
+	return restore
 }
 
 // bodyMatch determines whether a given ReadCloser should be redacted
@@ -84,11 +105,36 @@ func (d *dumpTransport) dumpRequest(req *http.Request) []byte {
 	restoreAuthz := redactAuthz(req)
 	defer restoreAuthz()
 
+	rx := ""
+
+	// IMPORTANT:
+	// Setting the regex to redact the request body most proceed from the most
+	// specific regex to the most generic one.
+	//
+	// This is to ensure the regex can't become more specific in a later
+	// condition, potentially cancelling a redaction determined by an earlier
+	// condition.
+
+	// We redact any issuers request with a data key
+	if strings.Contains(req.URL.Path, "/issuers") {
+		rx = `"data":`
+	}
+
+	// We redact any request for authorization, regardless of the body content
 	if strings.Contains(req.URL.Path, "/authn") {
+		rx = ".*"
+	}
+
+	// We redact any request for authorization with identity, regardless of the body content
+	if strings.Contains(req.URL.Path, "/Security/") {
+		rx = ".*"
+	}
+
+	if rx != "" {
 		restoreBody := redactBody(
 			&req.Body,
 			&req.ContentLength,
-			regexp.MustCompile(".*"),
+			regexp.MustCompile(rx),
 		)
 		defer restoreBody()
 	}
@@ -100,10 +146,21 @@ func (d *dumpTransport) dumpRequest(req *http.Request) []byte {
 // dumpResponse logs the contents of a given HTTP response, but first
 // sanitizes the response body if it includes a Conjur token.
 func (d *dumpTransport) dumpResponse(res *http.Response) []byte {
+	rx := "{\"protected\":\".*\",\"payload\":\".*\",\"signature\":\".*\"}"
+
+	// We redact any response and cookies for authorization with identity flow
+	if res.Request != nil &&
+		res.Request.URL != nil &&
+		strings.Contains(res.Request.URL.Path, "/Security/") {
+		rx = ".*"
+		restoreCookies := redactCookies(res)
+		defer restoreCookies()
+	}
+
 	restoreBody := redactBody(
 		&res.Body,
 		&res.ContentLength,
-		regexp.MustCompile("{\"protected\":\".*\",\"payload\":\".*\",\"signature\":\".*\"}"),
+		regexp.MustCompile(rx),
 	)
 	defer restoreBody()
 

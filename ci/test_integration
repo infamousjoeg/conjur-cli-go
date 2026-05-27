@@ -7,11 +7,12 @@ source "./shared.sh"
 # from anywhere.
 cd "$(dirname "$0")"
 
-services=(pg conjur proxy cli keycloak)
+services=(pg conjur proxy cli keycloak ldap-server)
 
 # set the COMPOSE_PROJECT_NAME for the tests you'll be running
 COMPOSE_PROJECT_NAME="$(openssl rand -hex 3)"
 
+export REGISTRY_URL=${INFRAPOOL_REGISTRY_URL:-"docker.io"}
 export COMPOSE_PROJECT_NAME
 
 cleanup_and_dump_logs() {
@@ -26,10 +27,13 @@ function main() {
 
   local conjur_account=dev
   local admin_initial_password='SuperSecret!!!!123'
+  export CONJUR_ACCOUNT="$conjur_account"
+  export CONJUR_ADMIN_PASSWORD="$admin_initial_password"
 
   # Add the domain to the Identity service account we fetch from Atlantis
   if [[ -n "${INFRAPOOL_IDENTITY_USERNAME}" ]]; then
     export IDENTITY_USERNAME="${INFRAPOOL_IDENTITY_USERNAME}@cyberark.com"
+    export IDENTITY_PASSWORD="${INFRAPOOL_IDENTITY_PASSWORD}"
   fi
 
   echo
@@ -47,14 +51,23 @@ function main() {
   wait_for_conjur
 
   echo
-  echo 'Setting up Conjur...'
+  echo 'Receiving INFRAPOOL image registry: ' $INFRAPOOL_REGISTRY_URL
+  echo 'Using image registry for Secrets Manager: ' $REGISTRY_URL
+
+  echo
+  echo 'Setting up Secrets Manager...'
   docker compose exec -T conjur bundle exec rake "account:create_with_password[${conjur_account},${admin_initial_password}]"
-  echo 'Finished setting up Conjur'
+  echo 'Finished setting up Secrets Manager'
 
   echo
   echo 'Setting up Keycloak'
   configure_oidc_providers
   echo 'Finished setting up Keycloak'
+
+  echo
+  echo 'Fetching a JWT token'
+  fetch_jwt
+  echo 'Finished fetching a JWT token'
 
   generate_identity_policy
 

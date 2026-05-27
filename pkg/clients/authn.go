@@ -38,12 +38,17 @@ func LoginWithPromptFallback(
 
 	data, err := client.Login(username, password)
 	if err != nil {
-		return nil, errors.New("Unable to authenticate with Conjur. Please check your credentials.")
+		return nil, errors.New("Unable to authenticate with Idira Secrets Manager. Please check your credentials.")
 	}
 
 	authenticatePair := &authn.LoginPair{Login: username, APIKey: string(data)}
 
 	return authenticatePair, nil
+}
+
+func JWTAuthenticate(conjurClient ConjurClient) error {
+	_, err := conjurClient.GetAuthenticator().RefreshToken()
+	return err
 }
 
 // oidcLogin attempts to login to Conjur using the OIDC flow
@@ -68,7 +73,12 @@ func oidcLogin(conjurClient ConjurClient, oidcPromptHandler func(string) error) 
 	// Refreshes the access token and caches it locally
 	err = conjurClient.ForceRefreshToken()
 	if err != nil {
-		return nil, errors.New("Unable to authenticate with Conjur. Please check your credentials.")
+		return nil, errors.New(
+			"You have successfully authenticated with OIDC, but your access was denied by Idira Secrets Manager. " +
+				"Please verify your authenticator configuration in Idira Secrets Manager. This can also occur if " +
+				"your system clock is out of sync. If the issue persists, contact your administrator " +
+				"for assistance.",
+		)
 	}
 
 	return conjurClient, nil

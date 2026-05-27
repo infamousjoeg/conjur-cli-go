@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
@@ -13,6 +15,7 @@ type mockLoginClient struct {
 	t                       *testing.T
 	loginWithPromptFallback func(t *testing.T, client clients.ConjurClient, username string, password string) (*authn.LoginPair, error)
 	oidcLogin               func(t *testing.T, client clients.ConjurClient, username string, password string) (clients.ConjurClient, error)
+	jwtAuthenticate         func(t *testing.T, client clients.ConjurClient) error
 }
 
 func (m mockLoginClient) LoginWithPromptFallback(client clients.ConjurClient, username string, password string) (*authn.LoginPair, error) {
@@ -21,6 +24,10 @@ func (m mockLoginClient) LoginWithPromptFallback(client clients.ConjurClient, us
 
 func (m mockLoginClient) OidcLogin(client clients.ConjurClient, username string, password string) (clients.ConjurClient, error) {
 	return m.oidcLogin(m.t, client, username, password)
+}
+
+func (m mockLoginClient) JWTAuthenticate(client clients.ConjurClient) error {
+	return m.jwtAuthenticate(m.t, client)
 }
 
 var defaultConjurConfig = conjurapi.Config{
@@ -35,11 +42,20 @@ var oidcConjurConfig = conjurapi.Config{
 	ServiceID:    "test-service",
 }
 
+var jwtConjurConfig = conjurapi.Config{
+	Account:      "dev",
+	ApplianceURL: "https://conjur",
+	AuthnType:    "jwt",
+	ServiceID:    "test-service",
+	JWTFilePath:  "jwt-file",
+}
+
 var loginTestCases = []struct {
 	name                    string
 	args                    []string
 	conjurConfig            conjurapi.Config
 	oidcLogin               func(t *testing.T, client clients.ConjurClient, username string, password string) (clients.ConjurClient, error)
+	jwtAuthenticate         func(t *testing.T, client clients.ConjurClient) error
 	loginWithPromptFallback func(t *testing.T, client clients.ConjurClient, username string, password string) (*authn.LoginPair, error)
 	assert                  func(t *testing.T, stdout string, stderr string, err error)
 }{
@@ -111,6 +127,33 @@ var loginTestCases = []struct {
 			assert.Contains(t, stdout, "Logged in")
 		},
 	},
+	{
+		name:         "login with jwt",
+		args:         []string{"login"},
+		conjurConfig: jwtConjurConfig,
+		jwtAuthenticate: func(t *testing.T, client clients.ConjurClient) error {
+			// Just return nil to simulate successful JWT authentication
+			return nil
+		},
+		assert: func(t *testing.T, stdout, stderr string, err error) {
+			assert.NoError(t, err)
+			assert.Empty(t, stderr)
+			assert.Contains(t, stdout, "Logged in")
+		},
+	},
+	{
+		name:         "login with jwt fails",
+		args:         []string{"login"},
+		conjurConfig: jwtConjurConfig,
+		jwtAuthenticate: func(t *testing.T, client clients.ConjurClient) error {
+			return fmt.Errorf("jwt authentication failed")
+		},
+		assert: func(t *testing.T, stdout, stderr string, err error) {
+			assert.Error(t, err)
+			assert.Empty(t, stdout)
+			assert.Contains(t, stderr, "Unable to authenticate with Idira Secrets Manager using the provided JWT file: jwt authentication failed")
+		},
+	},
 }
 
 func TestLoginCmd(t *testing.T) {
@@ -118,13 +161,19 @@ func TestLoginCmd(t *testing.T) {
 
 	for _, tc := range loginTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockClient := mockLoginClient{t: t, loginWithPromptFallback: tc.loginWithPromptFallback, oidcLogin: tc.oidcLogin}
+			mockClient := mockLoginClient{
+				t:                       t,
+				loginWithPromptFallback: tc.loginWithPromptFallback,
+				oidcLogin:               tc.oidcLogin,
+				jwtAuthenticate:         tc.jwtAuthenticate,
+			}
 
 			cmd := newLoginCmd(
 				loginCmdFuncs{
 					LoginWithPromptFallback: mockClient.LoginWithPromptFallback,
 					OidcLogin:               mockClient.OidcLogin,
-					LoadAndValidateConjurConfig: func() (conjurapi.Config, error) {
+					JWTAuthenticate:         mockClient.JWTAuthenticate,
+					LoadAndValidateConjurConfig: func(time.Duration) (conjurapi.Config, error) {
 						return tc.conjurConfig, nil
 					},
 				},

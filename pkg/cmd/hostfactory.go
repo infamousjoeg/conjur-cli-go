@@ -81,9 +81,9 @@ Example:
 		},
 	}
 
-	hostsCreateCmd.Flags().StringP("token", "t", "", "Token")
+	hostsCreateCmd.Flags().StringP("token", "t", "", "(Required) Token")
 	hostsCreateCmd.MarkFlagRequired("token")
-	hostsCreateCmd.Flags().StringP("id", "i", "", "ID")
+	hostsCreateCmd.Flags().StringP("id", "i", "", "(Required) ID")
 	hostsCreateCmd.MarkFlagRequired("id")
 
 	return hostsCreateCmd
@@ -110,7 +110,7 @@ Valid time units for the --duration flag are "s", "m", "h".
 
 Examples:
 - conjur hostfactory tokens create --duration 5m -i factory
-- conjur hostfactory tokens create -i cucumber:host_factory:factory
+- conjur hostfactory tokens create -i dev:host_factory:factory
 `,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -257,7 +257,7 @@ Example:
 		},
 	}
 
-	tokensRevokeCmd.Flags().StringP("token", "t", "", "The token to revoke")
+	tokensRevokeCmd.Flags().StringP("token", "t", "", "(Required) The token to revoke")
 	tokensRevokeCmd.MarkFlagRequired("token")
 
 	return tokensRevokeCmd

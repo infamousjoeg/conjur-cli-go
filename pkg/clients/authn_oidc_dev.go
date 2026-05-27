@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -70,6 +69,7 @@ func fetchOidcCodeFromProvider(username, password string) func(providerURL strin
 
 func fetchOidcCodeFromKeycloak(httpClient *http.Client, username, password, providerURL string) error {
 	// Note: This shouldn't be required to make keycloak work, but it doesn't matter much since it's only used for tests
+	// deepcode ignore TooPermissiveTrustManager: This code only runs in dev mode (to test OIDC login with Keycloak)
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	// Get the provider's login page
@@ -171,7 +171,7 @@ func fetchSessionTokenFromOkta(httpClient *http.Client, providerURL string, user
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
 		return "", err
@@ -196,6 +196,7 @@ func fetchSessionTokenFromOkta(httpClient *http.Client, providerURL string, user
 func callbackRedirect(location string) error {
 	go func() {
 		// Send a request to the callback URL to pass the code back to the CLI
+		// deepcode ignore Ssrf: This code only runs in dev mode (to test OIDC login)
 		resp, err := http.Get(location)
 		if err != nil {
 			fmt.Println(err)
@@ -279,6 +280,7 @@ type advanceAuthResponse struct {
 	Result  struct {
 		Summary            string `json:"Summary"`
 		GeneratedAuthValue string `json:"GeneratedAuthValue"`
+		Token              string `json:"Token"`
 	} `json:"Result"`
 	Message         string `json:"Message"`
 	MessageId       string `json:"MessageID"`
@@ -311,7 +313,7 @@ func authRequest[data startAuthData | advanceAuthData, responseContent startAuth
 		return nil, content, err
 	}
 	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, content, err
 	}
@@ -372,7 +374,7 @@ func fetchAuthTokenFromIdentity(httpClient *http.Client, providerURL string, use
 
 	// Advance Password-based authentication handshake.
 
-	resp, advanceResp, err := advanceAuthRequest(host, advanceAuthData{
+	_, advanceResp, err := advanceAuthRequest(host, advanceAuthData{
 		Action:      "Answer",
 		Answer:      password,
 		MechanismId: passwordMechanism.MechanismId,
@@ -387,11 +389,10 @@ func fetchAuthTokenFromIdentity(httpClient *http.Client, providerURL string, use
 
 	// If only one challenge exists (Password), return the token immediately
 	if len(startResp.Result.Challenges) == 1 {
-		return resp.Cookies()[slices.IndexFunc(
-			resp.Cookies(), func(c *http.Cookie) bool {
-				return c.Name == ".ASPXAUTH"
-			},
-		)].Value, nil
+		if len(advanceResp.Result.Token) == 0 {
+			return "", errors.New("missing token in identity response")
+		}
+		return advanceResp.Result.Token, nil
 	} else {
 
 		// Otherwise advance the Mobile Authenticator-based authentication handshake.
@@ -404,7 +405,7 @@ func fetchAuthTokenFromIdentity(httpClient *http.Client, providerURL string, use
 			},
 		)]
 
-		resp, advanceResp, err = advanceAuthRequest(host, advanceAuthData{
+		_, advanceResp, err = advanceAuthRequest(host, advanceAuthData{
 			Action:      "StartOOB",
 			MechanismId: mobileAuthMechanism.MechanismId,
 			SessionId:   startResp.Result.SessionId,
@@ -428,7 +429,7 @@ func fetchAuthTokenFromIdentity(httpClient *http.Client, providerURL string, use
 				case <-timeout:
 					return errors.New("Timed out waiting for out-of-band authentication")
 				case <-ticker.C:
-					resp, advanceResp, err = advanceAuthRequest(host, advanceAuthData{
+					_, advanceResp, err = advanceAuthRequest(host, advanceAuthData{
 						Action:      "Poll",
 						MechanismId: mobileAuthMechanism.MechanismId,
 						SessionId:   startResp.Result.SessionId,
@@ -449,14 +450,10 @@ func fetchAuthTokenFromIdentity(httpClient *http.Client, providerURL string, use
 			return "", err
 		}
 
-		// When the OOB Poll response indicates LoginSuccess, the bearer token is
-		// included as an .ASPXAUTH cookie.
-
-		return resp.Cookies()[slices.IndexFunc(
-			resp.Cookies(), func(c *http.Cookie) bool {
-				return c.Name == ".ASPXAUTH"
-			},
-		)].Value, nil
+		if len(advanceResp.Result.Token) == 0 {
+			return "", errors.New("missing token in identity response")
+		}
+		return advanceResp.Result.Token, nil
 	}
 }
 

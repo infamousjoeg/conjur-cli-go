@@ -15,8 +15,26 @@ func TestPubkeysIntegration(t *testing.T) {
 
 	t.Run("get public keys", func(t *testing.T) {
 		stdOut, stdErr, err := cli.Run("pubkeys", "alice")
-		assert.NoError(t, err)
+
+		if err != nil {
+			assert.Empty(t, stdOut)
+				assert.Contains(t, stdErr, "public keys endpoint is not available on this server")
+			return
+		}
+
 		assert.Empty(t, stdErr)
 		assert.Equal(t, "\n\n", stdOut)
+	})
+}
+
+func TestPubkeysIntegrationCloud(t *testing.T) {
+	cli := newConjurTestCLI(t)
+	cli.InitCloud(t)
+
+	t.Run("pubkeys command", func(t *testing.T) {
+		stdOut, stdErr, err := cli.Run("pubkeys", "alice")
+		assert.Error(t, err)
+		assert.Empty(t, stdOut)
+		assert.Contains(t, stdErr, "unknown command \"pubkeys\" for \"conjur\"\n")
 	})
 }

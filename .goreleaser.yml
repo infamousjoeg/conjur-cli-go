@@ -1,4 +1,6 @@
-project_name: conjur-cli-go
+version: 2
+
+project_name: conjur-cli
 
 before:
   hooks:
@@ -11,16 +13,9 @@ builds:
     binary: conjur
     env:
       - CGO_ENABLED=0
-    # Tag 'netgo' is a Go build tag that ensures a pure Go networking stack
-    # in the resulting binary instead of using the default host's stack to
-    # ensure a fully static artifact that has no dependencies.
-    # However, netgo on Windows has a bug that prevents it from using the
-    # machine's hosts file for DNS resolution. Therefore this tag must be
-    # omitted on Windows until the bug is fixed. See
-    # https://github.com/golang/go/issues/57757 and internal ticket
-    # CNJR-904 for more information.
+      - GOFIPS140=latest
     flags:
-      - -tags={{ if ne .Os "windows" }}netgo{{ end }}
+      - -tags=netgo
       - -a
     goos:
       - linux
@@ -35,11 +30,9 @@ builds:
       - -w
       - -X "github.com/cyberark/conjur-cli-go/pkg/version.Tag={{ .ShortCommit }}"
       - -X "github.com/cyberark/conjur-cli-go/pkg/version.Version={{ .Env.VERSION }}"
+      - -X "github.com/cyberark/conjur-cli-go/pkg/version.BuildYear={{ .Env.BUILD_YEAR }}"
     hooks:
       post:
-        # Copy the separately-built FIPS binaries into the GoReleaser build directory
-        - cmd: sh -c "cp -Rf {{ dir .Path }}/../../fips/* {{ dir .Path }}/../"
-          output: true
         # Copy the binary out into the <dist> path, and give the copy the name we want
         # in the release <extra_files>.
         # e.g. Suppose a windows amd64 build generates a binary at
@@ -51,7 +44,7 @@ builds:
         - cp "{{ .Path }}" "{{ dir .Path }}/../binaries/conjur_{{ .Target }}{{ .Ext }}"
 
 archives:
-  - id: conjur-cli-go-archive
+  - id: conjur-cli-archive
     files:
       - CHANGELOG.md
       - LICENSE
@@ -67,14 +60,14 @@ checksum:
 
 brews:
   - name: conjur-cli
-    description: CyberArk Conjur command line interface
+    description: Idira™ Secrets Manager command line interface
     homepage: https://conjur.org
-    url_template: https://github.com/cyberark/conjur-cli-go/releases/download/v{{.Env.VERSION}}/conjur-cli-go_{{.Env.VERSION}}_{{.Os}}_{{.Arch}}.tar.gz
+    url_template: https://github.com/cyberark/conjur-cli-go/releases/download/v{{.Env.VERSION}}/conjur-cli_{{.Env.VERSION}}_{{.Os}}_{{.Arch}}.tar.gz
     install: |
       bin.install "conjur"
     test: |
       system "#{bin}/conjur", "--version"
-    tap:
+    repository:
       owner: cyberark
       name: homebrew-tools
     skip_upload: true

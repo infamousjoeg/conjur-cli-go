@@ -1,0 +1,26 @@
+> conjur authenticator --help
+
+  Manage Idira Secrets Manager authenticators
+
+  USAGE
+
+    conjur authenticator [command] [--flags]
+
+  COMMANDS
+
+    disable     Disable an authenticator
+    enable      Enable an authenticator
+
+  FLAGS
+
+    -d --debug  Debug logging enabled
+    -h --help   Help for authenticator
+    -i --id     (Required) Provide authenticator identifier
+    --timeout   Http timeout duration, between 1s and 10m (1m0s)
+
+>
+
+
+
+
+

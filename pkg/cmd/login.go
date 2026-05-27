@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
@@ -11,15 +12,19 @@ import (
 )
 
 type loginCmdFuncs struct {
-	LoadAndValidateConjurConfig func() (conjurapi.Config, error)
+	LoadAndValidateConjurConfig func(timeout time.Duration) (conjurapi.Config, error)
 	LoginWithPromptFallback     func(client clients.ConjurClient, username string, password string) (*authn.LoginPair, error)
 	OidcLogin                   func(conjurClient clients.ConjurClient, username string, password string) (clients.ConjurClient, error)
+	JWTAuthenticate             func(conjurClient clients.ConjurClient) error
+	CloudLogin                  func(conjurClient clients.ConjurClient, username string, password string) (clients.ConjurClient, error)
 }
 
 var defaultLoginCmdFuncs = loginCmdFuncs{
 	LoadAndValidateConjurConfig: clients.LoadAndValidateConjurConfig,
 	LoginWithPromptFallback:     clients.LoginWithPromptFallback,
 	OidcLogin:                   clients.OidcLogin,
+	JWTAuthenticate:             clients.JWTAuthenticate,
+	CloudLogin:                  clients.CloudLogin,
 }
 
 type loginCmdFlagValues struct {
@@ -42,6 +47,7 @@ func getLoginCmdFlagValues(cmd *cobra.Command) (loginCmdFlagValues, error) {
 	}
 
 	debug, err := cmd.Flags().GetBool("debug")
+
 	if err != nil {
 		return loginCmdFlagValues{}, err
 	}
@@ -56,8 +62,8 @@ func getLoginCmdFlagValues(cmd *cobra.Command) (loginCmdFlagValues, error) {
 func newLoginCmd(funcs loginCmdFuncs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Authenticate with Conjur using the provided identity and password",
-		Long: `Authenticate with Conjur using the provided identity and password.
+		Short: "Authenticate with Idira Secrets Manager using the provided identity and password",
+		Long: `Authenticate with Idira Secrets Manager using the provided identity and password.
 
 The command will prompt for identity and password if they are not provided via flags.
 
@@ -76,7 +82,12 @@ Examples:
 				return err
 			}
 
-			config, err := funcs.LoadAndValidateConjurConfig()
+			timeout, err := clients.GetTimeout(cmd)
+			if err != nil {
+				return err
+			}
+
+			config, err := funcs.LoadAndValidateConjurConfig(timeout)
 			if err != nil {
 				return err
 			}
@@ -95,6 +106,29 @@ Examples:
 				_, err = funcs.LoginWithPromptFallback(conjurClient, cmdFlagVals.identity, cmdFlagVals.password)
 			} else if config.AuthnType == "oidc" {
 				_, err = funcs.OidcLogin(conjurClient, cmdFlagVals.identity, cmdFlagVals.password)
+			} else if config.AuthnType == "jwt" {
+				// We have to recreate the client with the JWT method so it
+				// attaches a JWTAuthenticator to the client otherwise
+				// conjurClient.GetAuthenticator() will return nil
+				conjurClient, err = conjurapi.NewClientFromJwt(config)
+				if err != nil {
+					return err
+				}
+				// Just run authenticate to validate the jwt. This isn't
+				// necessary (since the JWT path is set in the `init` command)
+				// but is provided as a convenience to the user, to allow them
+				// to validate their jwt file before running other commands.
+				err = funcs.JWTAuthenticate(conjurClient)
+				if err != nil {
+					err = fmt.Errorf("Unable to authenticate with Idira Secrets Manager using the provided JWT file: %s", err)
+				}
+			} else if config.AuthnType == "cloud" {
+				// If the user is using the cloud authn type, we need to
+				// authenticate with the cloud login method.
+				_, err := funcs.CloudLogin(conjurClient, cmdFlagVals.identity, cmdFlagVals.password)
+				if err != nil {
+					return fmt.Errorf("Unable to authenticate with Idira Secrets Manager, SaaS: %s", err)
+				}
 			} else {
 				return fmt.Errorf("unsupported authentication type: %s", config.AuthnType)
 			}
@@ -107,8 +141,8 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringP("id", "i", "", "")
-	cmd.Flags().StringP("password", "p", "", "")
+	cmd.Flags().StringP("id", "i", "", "The identity to authenticate with. For hosts: 'host/<full path>'.")
+	cmd.Flags().StringP("password", "p", "", "Password or API key for the specified identity.")
 
 	return cmd
 }

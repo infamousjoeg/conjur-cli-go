@@ -1,6 +1,9 @@
 #!/usr/bin/env groovy
 @Library("product-pipelines-shared-library") _
 
+def productName = 'Conjur CLI'
+def productTypeName = 'Conjur Enterprise'
+
 // Automated release, promotion and dependencies
 properties([
   // Include the automated release parameters for the build
@@ -13,16 +16,44 @@ properties([
 
 // Performs release promotion.  No other stages will be run
 if (params.MODE == "PROMOTE") {
-  release.promote(params.VERSION_TO_PROMOTE) { infrapool, sourceVersion, targetVersion, assetDirectory ->
+  release.promote(params.VERSION_TO_PROMOTE) { INFRAPOOL_EXECUTORV2_AGENT_0, sourceVersion, targetVersion, assetDirectory ->
     // Any assets from sourceVersion Github release are available in assetDirectory
     // Any version number updates from sourceVersion to targetVersion occur here
     // Any publishing of targetVersion artifacts occur here
     // Anything added to assetDirectory will be attached to the Github Release
 
+    env.INFRAPOOL_PRODUCT_NAME = "${productName}"
+    env.INFRAPOOL_DD_PRODUCT_TYPE_NAME = "${productTypeName}"
+
+    // Scan the image before promoting
+    runSecurityScans(INFRAPOOL_EXECUTORV2_AGENT_0,
+      image: "registry.tld/conjur-cli:${sourceVersion}-${gitCommit(INFRAPOOL_EXECUTORV2_AGENT_0)}",
+      buildMode: params.MODE,
+      branch: env.BRANCH_NAME,
+      arch: 'linux/amd64'
+    )
+
+    //Sign *.deb, *.exe, *.tar.gz and conjur_darwin_* artifacts
+    INFRAPOOL_EXECUTORV2_AGENT_0.agentGet from: "${assetDirectory}/", to: "./"
+
+    signArtifacts patterns: ["*.tar.gz"]
+    signArtifacts patterns: ["conjur_darwin_*"]
+    signArtifacts patterns: ["*.deb"]
+    signArtifacts patterns: ["*.exe"]
+
+    INFRAPOOL_EXECUTORV2_AGENT_0.agentPut from: "*.sig", to: "${assetDirectory}"
+    INFRAPOOL_EXECUTORV2_AGENT_0.agentPut from: "*.deb", to: "${assetDirectory}"
+    INFRAPOOL_EXECUTORV2_AGENT_0.agentPut from: "*.exe", to: "${assetDirectory}"
+    INFRAPOOL_EXECUTORV2_AGENT_0.agentPut from: "conjur_darwin_*", to: "${assetDirectory}"
+
     // Promote source version to target version.
 
     // NOTE: the use of --pull to ensure source images are pulled from internal registry
-    infrapool.agentSh "source ./bin/build_utils && ./bin/publish_container_images --promote --source ${sourceVersion}-\$(git_commit) --target ${targetVersion} --pull"
+    INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "source ./bin/build_utils && ./bin/publish_container_images --promote --source ${sourceVersion}-\$(git_commit) --target ${targetVersion} --pull"
+
+    // Ensure the working directory is a safe git directory for the subsequent
+    // promotion operations after this block.
+    sh 'git config --global --add safe.directory "$(pwd)"'
   }
 
   // Copy Github Enterprise release to Github
@@ -36,16 +67,19 @@ pipeline {
   options {
     timestamps()
     buildDiscarder(logRotator(numToKeepStr: '30'))
-    timeout(time: 30, unit: 'MINUTES')
+    timeout(time: 1, unit: 'HOURS')
   }
 
   environment {
     // Sets the MODE to the specified or autocalculated value as appropriate
     MODE = release.canonicalizeMode()
+    // Ensures CI uses the internal registry for conjur edge images
+    REGISTRY_URL = "registry.tld"
   }
 
   triggers {
     cron(getDailyCronString())
+    parameterizedCron(getWeeklyCronString("H(1-5)","%MODE=RELEASE"))
   }
 
   stages {
@@ -64,23 +98,19 @@ pipeline {
       }
     }
 
+    stage('Scan for internal URLs') {
+      steps {
+        script {
+          detectInternalUrls()
+        }
+      }
+    }
+
     stage('Get InfraPool ExecutorV2 Agent') {
       steps {
         script {
           // Request ExecutorV2 agents for 1 hour(s)
           INFRAPOOL_EXECUTORV2_AGENT_0 = getInfraPoolAgent.connected(type: "ExecutorV2", quantity: 1, duration: 1)[0]
-        }
-      }
-    }
-
-    stage('Validate') {
-      parallel {
-        stage('Changelog') {
-          steps { 
-            script {
-              INFRAPOOL_EXECUTORV2_AGENT_0.agentSh './bin/parse-changelog'
-            }
-          }
         }
       }
     }
@@ -95,9 +125,7 @@ pipeline {
     stage('Get latest upstream dependencies') {
       steps {
         script {
-          withCredentials([usernamePassword(credentialsId: 'jenkins_ci_token', usernameVariable: 'GITHUB_USER', passwordVariable: 'TOKEN')]) {
-            sh './bin/updateGoDependencies.sh -g "${WORKSPACE}/go.mod"'
-          }
+          updatePrivateGoDependencies("${WORKSPACE}/go.mod")
           // Copy the vendor directory onto infrapool
           INFRAPOOL_EXECUTORV2_AGENT_0.agentPut from: "vendor", to: "${WORKSPACE}"
           INFRAPOOL_EXECUTORV2_AGENT_0.agentPut from: "go.*", to: "${WORKSPACE}"
@@ -123,19 +151,33 @@ pipeline {
                 unstash 'xml-out'
                 junit 'junit.xml'
 
-                cobertura autoUpdateHealth: false,
-                  autoUpdateStability: false,
-                  coberturaReportFile: 'coverage.xml',
-                  conditionalCoverageTargets: '70, 0, 0',
-                  failUnhealthy: false,
-                  failUnstable: false,
-                  maxNumberOfBuilds: 0,
-                  lineCoverageTargets: '70, 0, 0',
-                  methodCoverageTargets: '70, 0, 0',
-                  onlyStable: false,
-                  sourceEncoding: 'ASCII',
-                  zoomCoverageChart: false
+                recordCoverage(
+                  tools: [
+                    [parser: 'COBERTURA', pattern: 'coverage.xml']
+                  ],
+                  sourceCodeEncoding: 'UTF-8',
+                  enabledForFailure: true,
+                  qualityGates: [
+                    [
+                      metric: 'LINE',
+                      threshold: 70.0,
+                      criticality: 'UNSTABLE'
+                    ],
+                    [
+                      metric: 'METHOD',
+                      threshold: 70.0,
+                      criticality: 'UNSTABLE'
+                    ],
+                    [
+                      metric: 'BRANCH',
+                      threshold: 0.0,
+                      criticality: 'UNSTABLE'
+                    ]
+                  ]
+                )
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                   codacy action: 'reportCoverage', filePath: "coverage.xml"
+                }
               }
             }
           }
@@ -155,13 +197,28 @@ pipeline {
                 INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "cp ../VERSION ./VERSION"
 
                 // Create release artifacts without releasing to Github
-                INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "./bin/build_release --skip-validate --clean"
+                INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "./bin/build_release --skip=validate --clean"
 
                 // Build container images
                 INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "./bin/build_container_images"
 
                 // Archive release artifacts
-                INFRAPOOL_EXECUTORV2_AGENT_0.agentArchiveArtifacts artifacts: 'dist/goreleaser/'
+                INFRAPOOL_EXECUTORV2_AGENT_0.agentArchiveArtifacts(
+                  artifacts: 'dist/goreleaser/**/*.{tar.gz,zip,deb,rpm,exe,sha256,txt,json,yml,yaml}',
+                  allowEmptyArchive: true
+                )
+              }
+            }
+          }
+        }
+
+        stage('Run integration tests for huh in TTY') {
+          steps {
+            script {
+              try {
+                INFRAPOOL_EXECUTORV2_AGENT_0.agentSh './ci/test_vhs'
+              } finally {
+                INFRAPOOL_EXECUTORV2_AGENT_0.agentArchiveArtifacts artifacts: 'vhs/output/*'
               }
             }
           }
@@ -169,14 +226,30 @@ pipeline {
       }
     }
 
+    // Publish container images to internal registry. Need to push before we do security scans
+    // since the Snyk scans pull from artifactory on a seprate executor node
+    stage('Push images to internal registry') {
+      steps {
+        script {
+          INFRAPOOL_EXECUTORV2_AGENT_0.agentSh './bin/publish_container_images --internal'
+        }
+      }
+    }
+
     stage('Integration test while scanning') {
+      environment {
+        INFRAPOOL_REGISTRY_URL = "${REGISTRY_URL}"
+        // Values to direct scan results to the right place in DefectDojo
+        INFRAPOOL_PRODUCT_NAME = "${productName}"
+        INFRAPOOL_DD_PRODUCT_TYPE_NAME = "${productTypeName}"
+      }
       parallel {
         stage('Run integration tests') {
           steps {
             withCredentials([
               conjurSecretCredential(credentialsId: "RnD-Global-Conjur-Ent-Conjur_Operating_System-WindowsDomainAccountDailyRotation-cyberng.com-svc_cnjr_enterprise_username", variable: 'INFRAPOOL_IDENTITY_USERNAME'),
               conjurSecretCredential(credentialsId: "RnD-Global-Conjur-Ent-Conjur_Operating_System-WindowsDomainAccountDailyRotation-cyberng.com-svc_cnjr_enterprise_password", variable: 'INFRAPOOL_IDENTITY_PASSWORD')
-            ]) 
+            ])
             {
               script {
                 INFRAPOOL_EXECUTORV2_AGENT_0.agentDir('ci') {
@@ -191,19 +264,52 @@ pipeline {
           }
         }
 
-        stage("Scan container images for fixable issues") {
+        stage("Scan main Docker image") {
           steps {
             script {
-              scanAndReport(INFRAPOOL_EXECUTORV2_AGENT_0, "${containerImageWithTag()}", "HIGH", false)
+              runSecurityScans(INFRAPOOL_EXECUTORV2_AGENT_0,
+                image: "registry.tld/${containerImageWithTag(INFRAPOOL_EXECUTORV2_AGENT_0)}",
+                buildMode: params.MODE,
+                branch: env.BRANCH_NAME,
+                arch: 'linux/amd64'
+              )
             }
           }
         }
+      }
+    }
 
-        stage("Scan container images for total issues") {
+    stage('Run Secrets Manager SaaS tests') {
+      stages {
+        stage('Create a Tenant') {
           steps {
             script {
-              scanAndReport(INFRAPOOL_EXECUTORV2_AGENT_0, "${containerImageWithTag()}", "NONE", true)
+              TENANT = getConjurCloudTenant()
             }
+          }
+        }
+        stage('Run tests against Tenant') {
+          environment {
+            INFRAPOOL_CONJUR_APPLIANCE_URL="${TENANT.conjur_cloud_url}"
+            INFRAPOOL_IDENTITY_USERNAME_CLOUD="${TENANT.login_name}"
+          }
+          steps {
+            script {
+              INFRAPOOL_EXECUTORV2_AGENT_0.agentDir('ci') {
+                try {
+                  INFRAPOOL_EXECUTORV2_AGENT_0.agentSh 'summon -f ./secrets.yml -e ci ./test_integration_cloud'
+                } finally {
+                  INFRAPOOL_EXECUTORV2_AGENT_0.agentArchiveArtifacts artifacts: 'cloud_cleanup.log'
+                }
+              }
+            }
+          }
+        }
+      }
+      post {
+        always {
+          script {
+            deleteConjurCloudTenant("${TENANT.id}")
           }
         }
       }
@@ -222,15 +328,12 @@ pipeline {
             // Copy any artifacts to assetDirectory to attach them to the Github release
 
             // Copy assets to be published in Github release.
-            INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "./bin/copy_release_artifacts ${assetDirectory}"
+            INFRAPOOL_EXECUTORV2_AGENT_0.agentSh "${toolsDirectory}/bin/copy_goreleaser_artifacts ${assetDirectory}"
 
             // Create Go application SBOM using the go.mod version for the golang container image
             INFRAPOOL_EXECUTORV2_AGENT_0.agentSh """export PATH="${toolsDirectory}/bin:${PATH}" && go-bom --tools "${toolsDirectory}" --go-mod ./go.mod --image "golang" --main "cmd/conjur/" --output "${billOfMaterialsDirectory}/go-app-bom.json" """
             // Create Go module SBOM
             INFRAPOOL_EXECUTORV2_AGENT_0.agentSh """export PATH="${toolsDirectory}/bin:${PATH}" && go-bom --tools "${toolsDirectory}" --go-mod ./go.mod --image "golang" --output "${billOfMaterialsDirectory}/go-mod-bom.json" """
-
-            // Publish container images to internal registry
-            INFRAPOOL_EXECUTORV2_AGENT_0.agentSh './bin/publish_container_images --internal'
           }
         }
       }
@@ -246,8 +349,15 @@ pipeline {
   }
 }
 
-def containerImageWithTag() {
-  INFRAPOOL_EXECUTORV2_AGENT_0.agentSh(
+def gitCommit(infrapool) {
+  infrapool.agentSh(
+    returnStdout: true,
+    script: 'source ./bin/build_utils && echo "$(git_commit)"'
+  )
+}
+
+def containerImageWithTag(infrapool) {
+  infrapool.agentSh(
     returnStdout: true,
     script: 'source ./bin/build_utils && echo "conjur-cli:$(project_version_with_commit)"'
   )

@@ -17,26 +17,19 @@ function build_binaries_and_archives() {
     # Use a GoReleaser Docker image containing cross-compilation tools
     # This image is recommended by the official GoReleaser docs
     # https://goreleaser.com/cookbooks/cgo-and-crosscompiling/
-    GORELEASER_IMAGE="goreleaser/goreleaser-cross:v1.19"
+    GORELEASER_IMAGE="goreleaser/goreleaser-cross:v1.25"
 
     # Get the version of Go specified by the "go directive" in go.mod
     # Grep it to avoid Go binary dependency
     GO_VERSION="v$(grep "^\bgo\b" "${REPO_ROOT}/go.mod" | awk '{print $2}')"
 
-    docker build -f "${REPO_ROOT}/Dockerfile.builder" -t conjur-cli-go-builder .
-
-    # Compile FIPS binaries with RedHat UBI
-    docker run --rm \
-      --env VERSION="${VERSION}" \
-      --volume "${REPO_ROOT}:/${PROJECT_WD}" \
-      --workdir "/${PROJECT_WD}" \
-      conjur-cli-go-builder
-
     # Compile binaries with GoReleaser
     echo "Docker image for release build: ${GORELEASER_IMAGE}"
     docker run --rm \
       --env VERSION="${VERSION}" \
+      --env BUILD_YEAR="${BUILD_YEAR}" \
       --env GO_VERSION="${GO_VERSION}" \
+      --env GOTOOLCHAIN=auto \
       --volume "${REPO_ROOT}:/${PROJECT_WD}" \
       --workdir "/${PROJECT_WD}" \
       "${GORELEASER_IMAGE}" --clean "$@"
@@ -67,10 +60,11 @@ function build_packages() {
 
     for packager in "${PACKAGERS[@]}"; do
       for arch in "${ARCHITECTURES[@]}"; do
-        target_file="conjur-cli-go_${VERSION}_${arch}.${packager}"
+        target_file="conjur-cli_${VERSION}_${arch}.${packager}"
 
         docker run --rm \
           --env VERSION="${VERSION}" \
+          --env BUILD_YEAR="${BUILD_YEAR}" \
           --env GOARCH="${arch}" \
           --volume "${REPO_ROOT}:/${PROJECT_WD}" \
           --workdir "/${PROJECT_WD}" \
@@ -94,8 +88,9 @@ function main() {
     export VERSION
 
     REPO_ROOT="$(repo_root)"
-    PROJECT_WD="github.cyberng.com/Conjur-Enterprise/conjur-cli-go"
+    PROJECT_WD="github.com/cyberark/conjur-cli-go"
     VERSION="$(project_semantic_version)"
+    BUILD_YEAR="$(date +%Y)"
 
     build_binaries_and_archives "$@"
     build_packages

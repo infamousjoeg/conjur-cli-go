@@ -1,0 +1,200 @@
+> conjur init
+┃ Select the environment you want to use:
+┃ The environment you want to use.
+┃ > Idira Secrets Manager, SaaS
+┃   Idira Secrets Manager, Self-Hosted
+┃   Conjur Open Source
+
+↑ up • ↓ down • / filter • enter submit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> conjur init
+┃ Select the environment you want to use:
+┃ The environment you want to use.
+┃   Idira Secrets Manager, SaaS
+┃ > Idira Secrets Manager, Self-Hosted
+┃   Conjur Open Source
+
+↑ up • ↓ down • / filter • enter submit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> conjur init
+┃ Enter the URL of your Idira Secrets Manager service:
+┃ >
+
+enter submit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> conjur init
+┃ Enter the URL of your Idira Secrets Manager service:
+┃ > https://example.com
+
+enter submit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> conjur init
+┃ Enter your organization account name:
+┃ >
+
+enter submit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> conjur init
+┃ Enter your organization account name:
+┃ > conjur
+
+enter submit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> conjur init
+Wrote configuration to /root/.conjurrc
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

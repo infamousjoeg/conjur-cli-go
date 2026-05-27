@@ -10,7 +10,7 @@ type roleClient interface {
 	RoleExists(roleID string) (bool, error)
 	Role(roleID string) (role map[string]interface{}, err error)
 	RoleMembers(roleID string) (members []map[string]interface{}, err error)
-	RoleMemberships(roleID string) (memberships []map[string]interface{}, err error)
+	RoleMembershipsAll(roleID string) (memberships []string, err error)
 }
 
 type roleClientFactoryFunc func(*cobra.Command) (roleClient, error)
@@ -30,7 +30,7 @@ var roleCmd = &cobra.Command{
 
 func newRoleExistsCmd(clientFactory roleClientFactoryFunc) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "exists",
+		Use:   "exists <role-id>",
 		Short: "Check if a role exists",
 		Long: `Check if a role exists
 		
@@ -92,7 +92,7 @@ Examples:
 
 func newRoleShowCmd(clientFactory roleClientFactoryFunc) *cobra.Command {
 	return &cobra.Command{
-		Use:   "show",
+		Use:   "show <role-id>",
 		Short: "Show a role",
 		Long: `Show a role
 		
@@ -134,7 +134,7 @@ Examples:
 
 func newRoleMembersCmd(clientFactory roleClientFactoryFunc) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "members",
+		Use:   "members <role-id>",
 		Short: "List members within a role",
 		Long: `List members within a role
 
@@ -200,7 +200,7 @@ Examples:
 
 func newRoleMembershipsCmd(clientFactory roleClientFactoryFunc) *cobra.Command {
 	return &cobra.Command{
-		Use:   "memberships",
+		Use:   "memberships <role-id>",
 		Short: "List memberships of a role",
 		Long: `List memberships of a role
 		
@@ -223,17 +223,12 @@ Examples:
 				return err
 			}
 
-			result, err := client.RoleMemberships(roleID)
+			result, err := client.RoleMembershipsAll(roleID)
 			if err != nil {
 				return err
 			}
 
-			memberships := make([]string, 0)
-			for _, element := range result {
-				memberships = append(memberships, element["role"].(string))
-			}
-
-			prettyResult, _ := utils.PrettyPrintToJSON(memberships)
+			prettyResult, _ := utils.PrettyPrintToJSON(result)
 			if err != nil {
 				return err
 			}

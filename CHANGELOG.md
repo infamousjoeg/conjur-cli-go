@@ -10,6 +10,160 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [9.2.1] - 2026-05-26
+
+### Fixed
+- Normalize PodFQDN URL from Identity start authentication response to always include https:// scheme. CNJR-14037
+
+## [9.2.0] - 2026-05-22
+
+### Changed
+- Rebranding in the UI. CNJR-13739
+
+## [9.1.4] - 2026-04-20
+
+### Changed
+- Improved error message for OIDC token validation failures. CNJR-12880
+
+### Security
+- Remove grpc and containerd dependencies to address CVE-2026-33186, CVE-2024-21626, CVE-2024-25621. CNJR-13643
+
+## [9.1.3] - 2026-03-10
+
+### Fixed
+- Fix tenant discovery 404s by calling the platform-discovery endpoint for identity URL (CNJR-13092)
+
+## [9.1.2] - 2026-01-21
+
+### Fixed
+- Fix the Secrets Manager SaaS host login flow (CNJR-12607)
+
+## [9.1.1] - 2026-01-12
+
+### Security
+- Update Golang to 1.25.5 to address CVE-2025-61729
+
+## [9.1.0] - 2025-11-13
+
+### Added
+- Added ability to support localhost as redirect URI in oidc authenticators.
+  CNJR-11471
+- Update Go to 1.25 (CONJSE-2067)
+
+### Security
+- Update UBI base image to latest to resolve CVE-2025-6965 (CNJR-11779)
+
+## [9.0.0] - 2025-09-04
+
+### Added
+- Add support for CyberArk Secrets Manager SaaS
+  CNJR-9039, CNJR-9043, CNJR-9349, CNJR-9046, CNJR-9040, CNJR-9344
+- Integration with identity for CyberArk Secrets Manager SaaS authentication
+  CNJR-9044
+- Added copyright disclaimer to version command
+  CNJR-9042
+
+### Changed
+- Use huh library instead of survey for user input prompts
+  CNJR-10253
+
+### Fixed
+- Prepare identity implementation for responses missing vital user facing information
+  by providing default values when missing information from the server
+  CNJR-11332
+- Enable identity security question flow with multiple questions answered at once
+  CNJR-11333
+- Add timeout to identity MFA multiple security questions prompt
+  CNJR-11387
+
+## [8.1.3] - 2025-09-12
+
+### Added
+- Add `-f/--file` flag to `variable set` command to read secret values from files. (CNJR-6876)
+
+### Changed
+- Update documentation to align with Conjur Enterprise name change to Secrets Manager. (CNJR-10975)
+- Update Go dependencies to reflect conjur-api-go v0.13.2
+- Improve error handling for missing .netrc file. ([cyberark/summon-conjur#83](https://github.com/cyberark/summon-conjur/issues/83), CNJR-10190)
+- Remove `-go` suffix from CLI binaries. (CNJR-3725)
+
+### Security
+- Change base image to `ubi9/ubi-minimal:9.6` (CNJR-10624)
+
+## [8.1.2] - 2025-04-09
+
+### Added
+- New `issuer create` command used for adding a dynamic secrets issuer to Conjur CNJR-9167
+- New `issuer list` command used for listing dynamic secrets issuers from Conjur CNJR-9170
+- New `issuer get` command used for retrieving a dynamic secrets issuer from Conjur CNJR-9169
+- New `issuer delete` command used for deleting a dynamic secrets issuer in Conjur CNJR-9168
+- New `issuer update` command used for updating a dynamic secrets issuer in Conjur CNJR-9171
+
+### Changed
+- Updated Go to 1.24 (CNJR-8641)
+
+## [8.1.1] - 2025-04-01
+
+### Changed
+- Updated Go dependencies
+
+## [8.1.0] - 2025-03-24
+
+### Added
+- New `--count` option for the `conjur list` command to allow getting only the amount
+  or resources after applying filters without actually listing the resources.
+  CNJR-8654
+
+### Changed
+- Use go 1.23 and 1.24
+
+### Fixed
+- Fix URL for rotating API keys when using authn-ldap
+  (CNJR-9014, [cyberark/conjur-cli-go#153](https://github.com/cyberark/conjur-cli-go/issues/153))
+
+## [8.0.19] - 2025-02-03
+
+### Fixed
+- Fix false positive on version check
+  (CNJR-7876, [cyberark/conjur-cli-go#152](https://github.com/cyberark/conjur-cli-go/issues/152))
+
+## [8.0.18] - 2025-01-10
+
+### Security
+- Update multiple dependencies to latest versions
+
+## [8.0.17] - 2024-12-27
+
+### Added
+- Add user-friendly error message on timeout and add HTTP timeout flag.
+  CNJR-7343 [#150](https://github.com/cyberark/conjur-cli-go/issues/150)
+
+### Fixed
+- `role memberships` command now returns all memberships, including inherited memberships (CNJR-5213)
+- Checks Conjur server version before using policy dry-run and fetch
+  (CNJR-7207, [#149](https://github.com/cyberark/conjur-cli-go/issues/149))
+
+### Security
+- Run the CLI as a non-root user in the Docker image (CNJR-6439)
+- Use Sha256 certificate fingerprint when confirming server's authenticity (CNJR-6438)
+- Change base image to `ubi9/ubi-minimal:9.5` (CNJR-7189)
+
+## [8.0.16] - 2024-07-25
+
+### Added
+- Support for `-jwt-file` and `-jwt-host-id` init params for use with JWT authentication (CNJR-4966)
+- Publish `latest` tag for Docker image (CNJR-5310)
+- Add `--dry-run` support for the policy operations (CNJR-4593)
+- Add `fetch` subcommand for policy commands to retrieve policy from Conjur (CNJR-5673)
+- Return requested variable duplicate instead of displaying 500 error (CNJR-5006)
+- Fixed a json when using batch retrieval of secrets (CNJR-6362)
+
+### Fixed
+- Fixed bug causing JSON output to be HTML escaped (CNJR-4574)
+
+### Security
+- Updated to Go 1.22 and use Microsoft's Golang image for FIPS compliance (CNJR-4923)
+
 ## [8.0.15] - 2024-03-19
 
 ### Fixed
@@ -146,7 +300,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Placeholder version to capture the reset of the repository
 
-[Unreleased]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.14...HEAD
+[Unreleased]: https://github.com/cyberark/conjur-cli-go/compare/v9.1.1...HEAD
+[9.1.1]: https://github.com/cyberark/conjur-cli-go/compare/v9.1.0...v9.1.1
+[9.1.0]: https://github.com/cyberark/conjur-cli-go/compare/v9.0.0...v9.1.0
+[9.0.0]: https://github.com/cyberark/conjur-cli-go/compare/v8.1.3...v9.0.0
+[8.1.3]: https://github.com/cyberark/conjur-cli-go/compare/v8.1.2...v8.1.3
+[8.1.2]: https://github.com/cyberark/conjur-cli-go/compare/v8.1.1...v8.1.2
+[8.1.1]: https://github.com/cyberark/conjur-cli-go/compare/v8.1.0...v8.1.1
+[8.1.0]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.19...v8.1.0
+[8.0.19]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.18...v8.0.19
+[8.0.18]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.17...v8.0.18
+[8.0.17]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.16...v8.0.17
+[8.0.16]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.15...v8.0.16
+[8.0.15]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.14...v8.0.15
 [8.0.14]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.13...v8.0.14
 [8.0.13]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.12...v8.0.13
 [8.0.12]: https://github.com/cyberark/conjur-cli-go/compare/v8.0.11...v8.0.12

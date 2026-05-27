@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -15,7 +17,7 @@ func newVariableCmd(
 ) *cobra.Command {
 	variableCmd := &cobra.Command{
 		Use:   "variable",
-		Short: "Manage Conjur variables",
+		Short: "Manage Idira Secrets Manager variables",
 	}
 
 	variableGetCmd := newVariableGetCmd(getClientFactory)
@@ -29,7 +31,7 @@ func newVariableCmd(
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	ids := make([]string, 0)
-	variableGetCmd.Flags().StringSliceP("id", "i", ids, "Provide variable identifiers")
+	variableGetCmd.Flags().StringSliceP("id", "i", ids, "(Required) Provide variable identifiers")
 	variableGetCmd.MarkFlagRequired("id")
 
 	// Variable versions start from 1 and then increase so we don't know
@@ -37,10 +39,10 @@ func newVariableCmd(
 	// this flag is an integer. Use a string to provide a default of "".
 	variableGetCmd.Flags().StringP("version", "v", "", "Specify the desired version of a single variable value")
 
-	variableSetCmd.Flags().StringP("id", "i", "", "Provide variable identifier")
+	variableSetCmd.Flags().StringP("id", "i", "", "(Required) Provide variable identifier")
 	variableSetCmd.MarkFlagRequired("id")
 	variableSetCmd.Flags().StringP("value", "v", "", "Set the value of the specified variable")
-	variableSetCmd.MarkFlagRequired("value")
+	variableSetCmd.Flags().StringP("file", "f", "", "Set the value of the specified variable based on file contents")
 
 	return variableCmd
 }
@@ -66,26 +68,36 @@ func variableSetClientFactory(cmd *cobra.Command) (variableSetClient, error) {
 }
 
 func printMultilineResults(cmd *cobra.Command, secrets map[string][]byte) error {
-	if len(secrets) > 1 {
-		cmd.Println("{")
-		for fullID, value := range secrets {
-			id := strings.Split(string(fullID), ":")
-			cmd.Printf("    \"%s\": \"%s\"\n", id[len(id)-1], value)
+	// Create a new map to store the transformed data
+	formattedSecrets := make(map[string]string)
+
+	for fullID, value := range secrets {
+		id := strings.Split(string(fullID), ":")
+		formattedSecrets[id[len(id)-1]] = string(value)
+	}
+
+	if len(formattedSecrets) > 1 {
+		// Marshal the map to JSON
+		jsonData, err := json.MarshalIndent(formattedSecrets, "", "    ")
+		if err != nil {
+			return err
 		}
-		cmd.Println("}")
+
+		cmd.Println(string(jsonData))
 	} else {
 		for _, v := range secrets {
 			cmd.Println(string(v))
 		}
 	}
+
 	return nil
 }
 
 func newVariableGetCmd(clientFactory variableGetClientFactoryFunc) *cobra.Command {
 	return &cobra.Command{
 		Use:   "get",
-		Short: "Get the value of one or more Conjur variables",
-		Long: `Get the value of one or more Conjur variables.
+		Short: "Get the value of one or more Idira Secrets Manager variables",
+		Long: `Get the value of one or more Idira Secrets Manager variables.
 
 Examples:
 - conjur variable get -i secret
@@ -98,9 +110,19 @@ Examples:
 			if err != nil {
 				return err
 			}
+			// Remove Duplicates
+			uniqueIDs := make([]string, 0, len(id))
+			idSet := make(map[string]struct{})
+			for _, variableID := range id {
+				if _, exists := idSet[variableID]; !exists {
+					idSet[variableID] = struct{}{}
+					uniqueIDs = append(uniqueIDs, variableID)
+				}
+			}
+
 			singleID := ""
-			if len(id) == 1 {
-				singleID = id[0]
+			if len(uniqueIDs) == 1 {
+				singleID = uniqueIDs[0]
 			}
 			client, err := clientFactory(cmd)
 			if err != nil {
@@ -115,9 +137,9 @@ Examples:
 			data := map[string][]byte{}
 
 			if versionStr == "" {
-				data, err = client.RetrieveBatchSecretsSafe(id)
+				data, err = client.RetrieveBatchSecretsSafe(uniqueIDs)
 			} else {
-				if len(id) > 1 {
+				if len(uniqueIDs) > 1 {
 					return fmt.Errorf("version can not be used with multiple variables")
 				}
 				var version int
@@ -138,11 +160,12 @@ Examples:
 func newVariableSetCmd(clientFactory variableSetClientFactoryFunc) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set",
-		Short: "Set the value of a Conjur variable",
-		Long: `Set the value of a Conjur variable.
+		Short: "Set the value of an Idira Secrets Manager variable",
+		Long: `Set the value of an Idira Secrets Manager variable.
 
 Examples:
 - conjur variable set -i secret -v value
+- conjur variable set -i secret -f file.txt
 		`,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -154,6 +177,24 @@ Examples:
 			value, err := cmd.Flags().GetString("value")
 			if err != nil {
 				return err
+			}
+
+			file, err := cmd.Flags().GetString("file")
+			if err != nil {
+				return err
+			}
+
+			// Validate that exactly one of --value or --file is provided
+			if (value == "" && file == "") || (value != "" && file != "") {
+				return fmt.Errorf("must specify exactly one of --value or --file")
+			}
+
+			if file != "" {
+				valueBytes, err := os.ReadFile(file)
+				if err != nil {
+					return fmt.Errorf("failed to read file %s: %w", file, err)
+				}
+				value = string(valueBytes)
 			}
 
 			client, err := clientFactory(cmd)
